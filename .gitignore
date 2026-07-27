@@ -1,0 +1,150 @@
+# ============================================================
+# Collaborative Database Notebook — .gitignore
+# Stack: Next.js (frontend) + FastAPI (backend) + Docker
+# ============================================================
+
+
+# ─── Environment & Secrets ───────────────────────────────────
+.env
+.env.local
+.env.development
+.env.development.local
+.env.test
+.env.test.local
+.env.production
+.env.production.local
+*.pem
+*.key
+*.cert
+
+
+# ─── Python / FastAPI ────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+.env/
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+*.egg
+.eggs/
+MANIFEST
+
+# Testing & coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.coveragerc
+nosetests.xml
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pytype/
+.pyre/
+
+# Linting
+.ruff_cache/
+
+# Alembic (keep alembic.ini and versions/ tracked; ignore local state)
+alembic/versions/__pycache__/
+
+
+# ─── Node.js / Next.js ───────────────────────────────────────
+node_modules/
+.pnp
+.pnp.js
+
+# Next.js build output
+frontend/.next/
+frontend/out/
+
+# Next.js cache
+frontend/.next/cache/
+
+# Build artefacts
+frontend/build/
+frontend/dist/
+
+# Package manager locks (keep one — uncomment whichever you use)
+# yarn.lock
+# pnpm-lock.yaml
+
+# Turbopack / Turborepo
+.turbo/
+
+# Testing
+frontend/coverage/
+frontend/.nyc_output/
+
+
+# ─── Docker ──────────────────────────────────────────────────
+# Don't ignore docker-compose.yml — it's tracked.
+# Ignore override files for local dev customisation.
+docker-compose.override.yml
+docker-compose.local.yml
+
+# Volume data mounted locally
+postgres-data/
+mongo-data/
+mysql-data/
+
+
+# ─── IDEs & Editors ──────────────────────────────────────────
+# VS Code
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# JetBrains (PyCharm, WebStorm, etc.)
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Vim / Neovim
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+
+# ─── Logs ────────────────────────────────────────────────────
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+
+# ─── Misc ────────────────────────────────────────────────────
+*.tmp
+*.bak
+*.orig
+.cache/
+.temp/
