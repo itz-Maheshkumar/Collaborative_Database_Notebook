@@ -4,6 +4,119 @@ A web-based, Jupyter-style notebook application for querying and exploring multi
 
 ---
 
+## Development Modules
+
+Development is broken into **10 sequential modules**. Each module is self-contained and results in working, testable code before the next begins.
+
+| # | Module | Key Deliverables | Status |
+|---|--------|-----------------|--------|
+| **M1** | [Foundation & Infrastructure](#m1-foundation--infrastructure) | Docker Compose, env config, DB session, backend entry point, frontend design system | ✅ Complete |
+| **M2** | [Authentication](#m2-authentication) | User model, JWT auth, register/login endpoints, signup & login pages | 🔄 In Progress |
+| **M3** | [Connection Manager](#m3-connection-manager) | Saved connections CRUD, credential encryption, connection test, frontend forms | ⬜ Pending |
+| **M4** | [Notebook Core](#m4-notebook-core) | Notebook + cell CRUD, autosave, version history, notebook list & workspace UI | ⬜ Pending |
+| **M5** | [Query Engine](#m5-query-engine) | All 4 DB connectors, query execution service, inline results table, error display | ⬜ Pending |
+| **M6** | [Schema Explorer](#m6-schema-explorer) | DB introspection for all 4 engines, sidebar tree view component | ⬜ Pending |
+| **M7** | [Query History](#m7-query-history) | Execution log model, history panel UI, re-run / copy actions | ⬜ Pending |
+| **M8** | [In-App Tutorials](#m8-in-app-tutorials) | Static markdown content for all 4 DBs, tutorial viewer, progress tracking | ⬜ Pending |
+| **M9** | [Admin Dashboard](#m9-admin-dashboard) | User management, analytics overview, audit log, role management endpoints | ⬜ Pending |
+| **M10** | [CI/CD & Deployment](#m10-cicd--deployment) | GitHub Actions CI + CD workflows, Docker images, smoke tests | ⬜ Pending |
+
+---
+
+### M1: Foundation & Infrastructure
+**Goal:** Everything needed before any feature code — running server, DB connection, frontend shell.
+- `docker-compose.yml` — PostgreSQL + backend + frontend services
+- `.env.example` — all required environment variables documented
+- `backend/app/main.py` — FastAPI app with CORS, routers, lifespan
+- `backend/app/core/config.py` — Pydantic settings from env
+- `backend/app/db/session.py` — async SQLAlchemy engine + session factory
+- `backend/app/db/base.py` — declarative base for all models
+- `frontend/src/app/layout.tsx` — root layout with fonts and metadata
+- `frontend/src/app/globals.css` — full design system (tokens, dark mode, components)
+
+### M2: Authentication
+**Goal:** Users can register, log in, and receive a JWT. All subsequent API calls are authenticated.
+- `backend/app/models/user.py` — User ORM model
+- `backend/app/schemas/user.py` — Pydantic request/response schemas
+- `backend/app/core/security.py` — password hashing, JWT create/verify
+- `backend/app/api/v1/auth.py` — `/register`, `/login`, `/me` endpoints
+- `backend/app/services/auth_service.py` — business logic
+- `frontend/src/app/login/page.tsx` — login page ✅ done
+- `frontend/src/app/signup/page.tsx` — signup page
+- `frontend/src/lib/auth.ts` — JWT storage, auth helpers
+- Alembic initial migration
+
+### M3: Connection Manager
+**Goal:** Users can save, edit, test, and switch between database connections.
+- `backend/app/models/connection.py` — Connection ORM model
+- `backend/app/schemas/connection.py` — request/response schemas
+- `backend/app/api/v1/connections.py` — CRUD + test-connection endpoint
+- `backend/app/core/security.py` — Fernet encryption for credentials at rest
+- `frontend/src/components/connection/ConnectionForm.tsx`
+- `frontend/src/components/connection/ConnectionList.tsx`
+- `frontend/src/app/connections/page.tsx`
+
+### M4: Notebook Core
+**Goal:** Users can create notebooks with cells, edit them, and have them autosaved.
+- `backend/app/models/notebook.py` — Notebook + NotebookCell models
+- `backend/app/api/v1/notebooks.py` — CRUD endpoints
+- `frontend/src/app/notebooks/page.tsx` — notebook list
+- `frontend/src/app/notebooks/[id]/page.tsx` — notebook workspace
+- `frontend/src/components/notebook/CellEditor.tsx` — Monaco editor cell
+- `frontend/src/components/notebook/NotebookToolbar.tsx`
+
+### M5: Query Engine
+**Goal:** Cells can be run against the connected database; results or errors appear inline.
+- `backend/app/connectors/base.py` — abstract connector interface
+- `backend/app/connectors/postgres.py` — asyncpg connector
+- `backend/app/connectors/mysql.py` — aiomysql connector
+- `backend/app/connectors/sqlite.py` — aiosqlite connector
+- `backend/app/connectors/mongodb.py` — Motor connector
+- `backend/app/services/query_service.py` — route queries to the right connector
+- `backend/app/api/v1/query.py` — execute endpoint
+- `frontend/src/components/notebook/CellOutput.tsx` — results table + error display
+
+### M6: Schema Explorer
+**Goal:** Sidebar shows live database/table/column tree for the active connection.
+- `backend/app/services/schema_service.py` — introspect schemas for all 4 engines
+- `frontend/src/components/schema/SchemaExplorer.tsx` — tree view sidebar
+
+### M7: Query History
+**Goal:** Every executed query is logged; users can browse, re-run, or copy past queries.
+- `backend/app/models/history.py` — QueryHistory model
+- `backend/app/api/v1/query.py` — history endpoints
+- `frontend/src/components/notebook/QueryHistory.tsx`
+
+### M8: In-App Tutorials
+**Goal:** A Learn panel with guided lessons and runnable examples for each database.
+- `frontend/src/data/tutorials/postgres.md`
+- `frontend/src/data/tutorials/mysql.md`
+- `frontend/src/data/tutorials/mongodb.md`
+- `frontend/src/data/tutorials/sqlite.md`
+- `frontend/src/components/learn/TutorialViewer.tsx`
+- `frontend/src/app/learn/page.tsx`
+- `backend/app/models/tutorial.py` — progress tracking
+- `backend/app/api/v1/tutorials.py`
+
+### M9: Admin Dashboard
+**Goal:** Admin users can manage all users, view platform analytics, and read audit logs.
+- `backend/app/schemas/admin.py`
+- `backend/app/services/admin_service.py`
+- `backend/app/api/v1/admin.py` — all admin endpoints (role-gated)
+- `frontend/src/components/admin/UserManagementTable.tsx`
+- `frontend/src/components/admin/AnalyticsOverview.tsx`
+- `frontend/src/components/admin/AuditLogs.tsx`
+- `frontend/src/app/admin/page.tsx`
+
+### M10: CI/CD & Deployment
+**Goal:** Every push runs lint + tests + build; merges to main auto-deploy.
+- `.github/workflows/ci.yml` — lint, type-check, test, build
+- `.github/workflows/cd.yml` — build images, migrate, deploy, smoke test
+- `backend/Dockerfile` — production FastAPI image
+- `frontend/Dockerfile` — production Next.js image
+
+---
+
 ## 1. Objective
 
 Most database clients (DBeaver, TablePlus, pgAdmin, etc.) are desktop tools built for a single user working alone. **Collaborative Database Notebook** brings the notebook workflow — cells, inline output, saved history, shareable documents — to database querying itself, in the browser, with collaboration in mind.
