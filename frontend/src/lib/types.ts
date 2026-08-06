@@ -75,6 +75,22 @@ export interface NotebookCreate {
   connection_id?: number;
 }
 
+export interface QueryExecuteRequest {
+  cell_id: number;
+  connection_id: number;
+  query_text: string;
+}
+
+export interface QueryResult {
+  success: boolean;
+  columns: string[];
+  rows: Record<string, unknown>[];
+  row_count: number;
+  execution_time_ms: number;
+  error_message?: string;
+  engine?: string;
+}
+
 export interface TokenResponse {
   access_token: string;
   token_type: string;

@@ -6,7 +6,8 @@ import Navbar from "@/components/layout/Navbar";
 import Sidebar from "@/components/layout/Sidebar";
 import NotebookToolbar from "@/components/notebook/NotebookToolbar";
 import CellEditor from "@/components/notebook/CellEditor";
-import { Notebook, Connection, NotebookCell } from "@/lib/types";
+import CellOutput from "@/components/notebook/CellOutput";
+import { Notebook, Connection, NotebookCell, QueryResult } from "@/lib/types";
 import {
   getNotebookApi,
   updateNotebookApi,
@@ -14,6 +15,7 @@ import {
   updateCellApi,
   deleteCellApi,
   getConnectionsApi,
+  executeQueryApi,
 } from "@/lib/api";
 import { isAuthenticated } from "@/lib/auth";
 
@@ -24,6 +26,7 @@ export default function NotebookWorkspacePage() {
 
   const [notebook, setNotebook] = useState<Notebook | null>(null);
   const [connections, setConnections] = useState<Connection[]>([]);
+  const [cellOutputs, setCellOutputs] = useState<Record<number, QueryResult>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -134,42 +137,64 @@ export default function NotebookWorkspacePage() {
 
   const handleRunCell = async (cell: NotebookCell) => {
     if (!notebook) return;
-    // Set cell status to running
+
+    const connectionId = notebook.connection_id;
+    if (!connectionId) {
+      setCellOutputs((prev) => ({
+        ...prev,
+        [cell.id]: {
+          success: false,
+          columns: [],
+          rows: [],
+          row_count: 0,
+          execution_time_ms: 0,
+          error_message: "No database connection selected. Choose a connection in the toolbar.",
+        },
+      }));
+      return;
+    }
+
+    // Mark running
     setNotebook((prev) =>
       prev
-        ? {
-            ...prev,
-            cells: prev.cells.map((c) =>
-              c.id === cell.id ? { ...c, status: "running" } : c
-            ),
-          }
+        ? { ...prev, cells: prev.cells.map((c) => (c.id === cell.id ? { ...c, status: "running" } : c)) }
         : null
     );
 
-    // Placeholder run (Will be wired to Query Engine in Module 5)
-    setTimeout(() => {
+    try {
+      const result = await executeQueryApi(cell.id, connectionId, cell.content);
+      setCellOutputs((prev) => ({ ...prev, [cell.id]: result }));
       setNotebook((prev) =>
         prev
           ? {
               ...prev,
               cells: prev.cells.map((c) =>
                 c.id === cell.id
-                  ? {
-                      ...c,
-                      status: "success",
-                      execution_time_ms: 12,
-                      last_output: JSON.stringify(
-                        [{ message: "Query Engine will execute live queries in Module 5!" }],
-                        null,
-                        2
-                      ),
-                    }
+                  ? { ...c, status: result.success ? "success" : "error", execution_time_ms: result.execution_time_ms }
                   : c
               ),
             }
           : null
       );
-    }, 600);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Query execution failed";
+      setCellOutputs((prev) => ({
+        ...prev,
+        [cell.id]: {
+          success: false,
+          columns: [],
+          rows: [],
+          row_count: 0,
+          execution_time_ms: 0,
+          error_message: msg,
+        },
+      }));
+      setNotebook((prev) =>
+        prev
+          ? { ...prev, cells: prev.cells.map((c) => (c.id === cell.id ? { ...c, status: "error" } : c)) }
+          : null
+      );
+    }
   };
 
   const handleRunAll = () => {
@@ -235,21 +260,29 @@ export default function NotebookWorkspacePage() {
                 onRun={handleRunCell}
               />
 
-              {/* Inline Output Box */}
-              {cell.last_output && (
-                <div
-                  className="code-block"
-                  style={{
-                    marginTop: "-8px",
-                    marginBottom: "20px",
-                    background: "rgba(15,18,30,0.9)",
-                    borderColor: "rgba(255,255,255,0.08)",
-                  }}
-                >
-                  <div style={{ fontSize: "11px", color: "#64748b", marginBottom: "4px" }}>OUTPUT</div>
-                  <pre>{cell.last_output}</pre>
-                </div>
-              )}
+              {/* Inline Output Component */}
+              {(() => {
+                const outputObj =
+                  cellOutputs[cell.id] ||
+                  (cell.last_output
+                    ? (() => {
+                        try {
+                          return JSON.parse(cell.last_output);
+                        } catch {
+                          return {
+                            success: cell.status !== "error",
+                            columns: [],
+                            rows: [],
+                            row_count: 0,
+                            execution_time_ms: cell.execution_time_ms || 0,
+                            error_message: cell.status === "error" ? cell.last_output : undefined,
+                          };
+                        }
+                      })()
+                    : null);
+
+                return outputObj ? <CellOutput output={outputObj} /> : null;
+              })()}
             </div>
           ))}
 
