@@ -14,7 +14,7 @@ Development is broken into **10 sequential modules**. Each module is self-contai
 | **M2** | [Authentication](#m2-authentication) | User model, JWT auth, register/login endpoints, signup & login pages | ✅ Complete |
 | **M3** | [Connection Manager](#m3-connection-manager) | Saved connections CRUD, credential encryption, connection test, frontend forms | ✅ Complete |
 | **M4** | [Notebook Core](#m4-notebook-core) | Notebook + cell CRUD, autosave, version history, notebook list & workspace UI | ✅ Complete |
-| **M5** | [Query Engine](#m5-query-engine) | All 4 DB connectors, query execution service, inline results table, error display | 🔄 In Progress |
+| **M5** | [Query Engine](#m5-query-engine) | All 4 DB connectors, query execution service, inline results table, error display | ✅ Complete |
 | **M6** | [Schema Explorer](#m6-schema-explorer) | DB introspection for all 4 engines, sidebar tree view component | ⬜ Pending |
 | **M7** | [Query History](#m7-query-history) | Execution log model, history panel UI, re-run / copy actions | ⬜ Pending |
 | **M8** | [In-App Tutorials](#m8-in-app-tutorials) | Static markdown content for all 4 DBs, tutorial viewer, progress tracking | ⬜ Pending |

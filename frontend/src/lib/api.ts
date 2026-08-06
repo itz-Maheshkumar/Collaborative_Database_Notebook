@@ -151,3 +151,20 @@ export async function deleteCellApi(notebookId: number, cellId: number): Promise
     method: 'DELETE',
   });
 }
+
+// ─── Query APIs ───────────────────────────────────────────────────
+
+export async function executeQueryApi(
+  cellId: number,
+  connectionId: number,
+  queryText: string
+): Promise<QueryResult> {
+  return apiFetch<QueryResult>('/api/v1/query/execute', {
+    method: 'POST',
+    body: JSON.stringify({
+      cell_id: cellId,
+      connection_id: connectionId,
+      query_text: queryText,
+    }),
+  });
+}
