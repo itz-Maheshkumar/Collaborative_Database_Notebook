@@ -7,6 +7,7 @@ import Sidebar from "@/components/layout/Sidebar";
 import NotebookToolbar from "@/components/notebook/NotebookToolbar";
 import CellEditor from "@/components/notebook/CellEditor";
 import CellOutput from "@/components/notebook/CellOutput";
+import SchemaExplorer from "@/components/schema/SchemaExplorer";
 import { Notebook, Connection, NotebookCell, QueryResult } from "@/lib/types";
 import {
   getNotebookApi,
@@ -27,6 +28,7 @@ export default function NotebookWorkspacePage() {
   const [notebook, setNotebook] = useState<Notebook | null>(null);
   const [connections, setConnections] = useState<Connection[]>([]);
   const [cellOutputs, setCellOutputs] = useState<Record<number, QueryResult>>({});
+  const [showSchemaPanel, setShowSchemaPanel] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -237,7 +239,25 @@ export default function NotebookWorkspacePage() {
       <div style={{ display: "flex" }}>
         <Sidebar />
 
+        {/* Schema Explorer Side Panel */}
+        {showSchemaPanel && (
+          <div style={{ width: "260px", minWidth: "260px", height: "calc(100vh - 60px)", position: "sticky", top: "60px" }}>
+            <SchemaExplorer connectionId={notebook.connection_id} />
+          </div>
+        )}
+
         <main style={{ flex: 1, padding: "24px 32px", maxWidth: "1200px" }}>
+          {/* Toggle Schema Button */}
+          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "8px" }}>
+            <button
+              className="btn btn-ghost btn-sm"
+              style={{ fontSize: "12px" }}
+              onClick={() => setShowSchemaPanel(!showSchemaPanel)}
+            >
+              {showSchemaPanel ? "◀ Hide Schema" : "▶ Show Schema"}
+            </button>
+          </div>
+
           {/* Toolbar Header */}
           <NotebookToolbar
             title={notebook.title}

@@ -1,5 +1,5 @@
 import { getToken } from './auth';
-import { TokenResponse, User } from './types';
+import { TokenResponse, User, SchemaTreeResponse } from './types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -168,3 +168,10 @@ export async function executeQueryApi(
     }),
   });
 }
+
+// ─── Schema APIs ──────────────────────────────────────────────────
+
+export async function getSchemaApi(connectionId: number): Promise<SchemaTreeResponse> {
+  return apiFetch<SchemaTreeResponse>(`/api/v1/schema/${connectionId}`);
+}
+

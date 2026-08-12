@@ -91,6 +91,26 @@ export interface QueryResult {
   engine?: string;
 }
 
+export interface ColumnInfo {
+  name: string;
+  data_type: string;
+  is_nullable: boolean;
+  is_primary_key: boolean;
+}
+
+export interface TableInfo {
+  name: string;
+  type: string;
+  columns: ColumnInfo[];
+}
+
+export interface SchemaTreeResponse {
+  engine: string;
+  database_name: string;
+  tables: TableInfo[];
+  error_message?: string;
+}
+
 export interface TokenResponse {
   access_token: string;
   token_type: string;
