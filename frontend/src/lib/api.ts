@@ -1,5 +1,5 @@
 import { getToken } from './auth';
-import { TokenResponse, User, SchemaTreeResponse } from './types';
+import { TokenResponse, User, SchemaTreeResponse, QueryHistoryItem } from './types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -174,4 +174,25 @@ export async function executeQueryApi(
 export async function getSchemaApi(connectionId: number): Promise<SchemaTreeResponse> {
   return apiFetch<SchemaTreeResponse>(`/api/v1/schema/${connectionId}`);
 }
+
+// ─── Query History APIs ───────────────────────────────────────────
+
+export async function getQueryHistoryApi(
+  notebookId?: number,
+  statusFilter?: string
+): Promise<QueryHistoryItem[]> {
+  const params = new URLSearchParams();
+  if (notebookId) params.append('notebook_id', String(notebookId));
+  if (statusFilter) params.append('status', statusFilter);
+  const queryStr = params.toString() ? `?${params.toString()}` : '';
+  return apiFetch<QueryHistoryItem[]>(`/api/v1/query/history${queryStr}`);
+}
+
+export async function clearQueryHistoryApi(notebookId?: number): Promise<void> {
+  const queryStr = notebookId ? `?notebook_id=${notebookId}` : '';
+  return apiFetch<void>(`/api/v1/query/history${queryStr}`, {
+    method: 'DELETE',
+  });
+}
+
 

@@ -11,6 +11,7 @@ interface NotebookToolbarProps {
   onSelectConnection: (connectionId?: number) => void;
   onAddCell: (cellType: "sql" | "code" | "markdown") => void;
   onRunAll: () => void;
+  onToggleHistory?: () => void;
 }
 
 export default function NotebookToolbar({
@@ -21,6 +22,7 @@ export default function NotebookToolbar({
   onSelectConnection,
   onAddCell,
   onRunAll,
+  onToggleHistory,
 }: NotebookToolbarProps) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [currentTitle, setCurrentTitle] = useState(title);
@@ -105,6 +107,17 @@ export default function NotebookToolbar({
         >
           + Markdown Cell
         </button>
+
+        {/* History button */}
+        {onToggleHistory && (
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={onToggleHistory}
+            title="View query execution history"
+          >
+            📜 History
+          </button>
+        )}
 
         {/* Run All */}
         <button className="btn btn-primary btn-sm" onClick={onRunAll}>

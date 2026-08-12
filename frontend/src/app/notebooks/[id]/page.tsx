@@ -8,6 +8,7 @@ import NotebookToolbar from "@/components/notebook/NotebookToolbar";
 import CellEditor from "@/components/notebook/CellEditor";
 import CellOutput from "@/components/notebook/CellOutput";
 import SchemaExplorer from "@/components/schema/SchemaExplorer";
+import QueryHistory from "@/components/notebook/QueryHistory";
 import { Notebook, Connection, NotebookCell, QueryResult } from "@/lib/types";
 import {
   getNotebookApi,
@@ -29,6 +30,7 @@ export default function NotebookWorkspacePage() {
   const [connections, setConnections] = useState<Connection[]>([]);
   const [cellOutputs, setCellOutputs] = useState<Record<number, QueryResult>>({});
   const [showSchemaPanel, setShowSchemaPanel] = useState(true);
+  const [showHistoryDrawer, setShowHistoryDrawer] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -267,6 +269,7 @@ export default function NotebookWorkspacePage() {
             onSelectConnection={handleSelectConnection}
             onAddCell={handleAddCell}
             onRunAll={handleRunAll}
+            onToggleHistory={() => setShowHistoryDrawer(!showHistoryDrawer)}
           />
 
           {/* Cells List */}
@@ -317,6 +320,19 @@ export default function NotebookWorkspacePage() {
           </div>
         </main>
       </div>
+
+      {/* Query History Drawer */}
+      {showHistoryDrawer && (
+        <QueryHistory
+          notebookId={notebook.id}
+          onClose={() => setShowHistoryDrawer(false)}
+          onInsertQuery={async (queryText) => {
+            await handleAddCell("sql");
+            // Also copy query text to clipboard for convenient paste
+            navigator.clipboard.writeText(queryText);
+          }}
+        />
+      )}
     </div>
   );
 }

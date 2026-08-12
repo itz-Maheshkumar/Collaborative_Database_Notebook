@@ -111,6 +111,21 @@ export interface SchemaTreeResponse {
   error_message?: string;
 }
 
+export interface QueryHistoryItem {
+  id: number;
+  user_id: number;
+  notebook_id?: number;
+  cell_id?: number;
+  connection_id?: number;
+  engine: string;
+  query_text: string;
+  status: 'success' | 'error';
+  row_count: number;
+  execution_time_ms: number;
+  error_message?: string;
+  created_at: string;
+}
+
 export interface TokenResponse {
   access_token: string;
   token_type: string;
