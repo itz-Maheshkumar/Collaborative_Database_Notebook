@@ -135,3 +135,24 @@ export interface TokenResponse {
 export interface ApiError {
   detail: string | { msg: string }[];
 }
+
+export interface TutorialSection {
+  id: string;
+  title: string;
+}
+
+export interface TutorialMeta {
+  id: string;
+  title: string;
+  description: string;
+  engine: string;
+  difficulty: string;
+  estimatedMinutes: number;
+  sections: TutorialSection[];
+}
+
+export interface TutorialProgressItem {
+  tutorial_id: string;
+  section_id: string;
+  completed_at: string;
+}
