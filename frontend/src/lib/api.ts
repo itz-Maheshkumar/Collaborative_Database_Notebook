@@ -1,5 +1,5 @@
 import { getToken } from './auth';
-import { TokenResponse, User, SchemaTreeResponse, QueryHistoryItem } from './types';
+import { TokenResponse, User, SchemaTreeResponse, QueryHistoryItem, TutorialProgressItem } from './types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -196,3 +196,24 @@ export async function clearQueryHistoryApi(notebookId?: number): Promise<void> {
 }
 
 
+// ─── Tutorial APIs ────────────────────────────────────────────────
+
+export async function getTutorialProgressApi(): Promise<TutorialProgressItem[]> {
+  return apiFetch<TutorialProgressItem[]>('/api/v1/tutorials/progress');
+}
+
+export async function markSectionCompleteApi(
+  tutorialId: string,
+  sectionId: string
+): Promise<TutorialProgressItem> {
+  return apiFetch<TutorialProgressItem>('/api/v1/tutorials/progress', {
+    method: 'POST',
+    body: JSON.stringify({ tutorial_id: tutorialId, section_id: sectionId }),
+  });
+}
+
+export async function resetTutorialProgressApi(tutorialId: string): Promise<void> {
+  return apiFetch<void>(`/api/v1/tutorials/progress/${tutorialId}`, {
+    method: 'DELETE',
+  });
+}

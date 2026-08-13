@@ -22,7 +22,7 @@ sections:
 
 PostgreSQL is a powerful, open-source object-relational database. It uses **Structured Query Language (SQL)** to store and retrieve data.
 
-In this tutorial, you'll learn the essential SQL operations you need to be productive with PostgreSQL.
+In this tutorial, you will learn the essential SQL operations you need to be productive with PostgreSQL.
 
 > **Tip:** Each code block in this tutorial can be copied and pasted directly into a SQL cell in your notebook.
 
