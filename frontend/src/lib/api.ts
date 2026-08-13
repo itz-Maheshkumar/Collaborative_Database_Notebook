@@ -1,5 +1,5 @@
 import { getToken } from './auth';
-import { TokenResponse, User, SchemaTreeResponse, QueryHistoryItem, TutorialProgressItem } from './types';
+import { TokenResponse, User, SchemaTreeResponse, QueryHistoryItem, TutorialProgressItem, AdminUser, AnalyticsData, AuditLogListResponse } from './types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -216,4 +216,34 @@ export async function resetTutorialProgressApi(tutorialId: string): Promise<void
   return apiFetch<void>(`/api/v1/tutorials/progress/${tutorialId}`, {
     method: 'DELETE',
   });
+}
+
+// ─── Admin APIs ────────────────────────────────────────────────
+
+export async function adminListUsersApi(): Promise<AdminUser[]> {
+  return apiFetch<AdminUser[]>('/api/v1/admin/users');
+}
+
+export async function adminUpdateUserApi(
+  userId: number,
+  data: { role?: string; is_active?: boolean; full_name?: string }
+): Promise<AdminUser> {
+  return apiFetch<AdminUser>(`/api/v1/admin/users/${userId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function adminGetAnalyticsApi(): Promise<AnalyticsData> {
+  return apiFetch<AnalyticsData>('/api/v1/admin/analytics');
+}
+
+export async function adminGetAuditLogsApi(
+  limit = 100,
+  offset = 0,
+  status?: string
+): Promise<AuditLogListResponse> {
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+  if (status) params.append('status', status);
+  return apiFetch<AuditLogListResponse>(`/api/v1/admin/audit-logs?${params.toString()}`);
 }
