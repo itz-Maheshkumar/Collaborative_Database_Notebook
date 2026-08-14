@@ -359,8 +359,7 @@ export default function SignupPage() {
 
           <h1 className="heading">Create your account</h1>
           <p className="subheading">
-            Start querying PostgreSQL, MySQL, MongoDB &amp;&nbsp;
-            <span>SQLite</span>
+            Start querying PostgreSQL, MySQL, MongoDB, and <span>SQLite</span>
           </p>
 
           {error && (

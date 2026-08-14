@@ -1,22 +1,28 @@
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional, Union
+import bcrypt
 from jose import jwt, JWTError
-from passlib.context import CryptContext
 from cryptography.fernet import Fernet
 
 from app.core.config import settings
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a plain password against its hash."""
-    return pwd_context.verify(plain_password, hashed_password)
+    """Verify a plain password against its bcrypt hash."""
+    try:
+        return bcrypt.checkpw(
+            plain_password.encode("utf-8"),
+            hashed_password.encode("utf-8"),
+        )
+    except Exception:
+        return False
 
 
 def get_password_hash(password: str) -> str:
-    """Generate bcrypt password hash."""
-    return pwd_context.hash(password)
+    """Generate bcrypt password hash directly."""
+    pwd_bytes = password.encode("utf-8")
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(pwd_bytes, salt).decode("utf-8")
 
 
 def create_access_token(
@@ -57,9 +63,7 @@ def decode_access_token(token: str) -> Optional[dict[str, Any]]:
 # ─── Encryption helper for connection credentials at rest ─────────────
 def get_fernet() -> Fernet:
     key = settings.FERNET_KEY
-    # Handle placeholder key gracefully for dev if needed
     if key == "change-me-generate-with-fernet" or not key:
-        # Fallback 32-byte url-safe base64 key for dev placeholder
         key = "dGVzdF9kZXZfZmVybmV0X2tleV9wbGFjZWhvbGRlcg=="
     return Fernet(key.encode() if isinstance(key, str) else key)
 

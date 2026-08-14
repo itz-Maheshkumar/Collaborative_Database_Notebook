@@ -225,6 +225,19 @@ a:hover { color: #818cf8; }
 }
 .input-error { border-color: rgba(239,68,68,0.5) !important; }
 
+select.input {
+  background-color: #0f1220;
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+select.input option,
+option {
+  background-color: #0f1220;
+  color: #f1f5f9;
+  padding: 8px 12px;
+}
+
 .label {
   display: block;
   font-size: 12px;

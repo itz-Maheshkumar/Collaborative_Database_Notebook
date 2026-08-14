@@ -6,15 +6,15 @@ from httpx import AsyncClient
 async def test_register_and_login(client: AsyncClient):
     # 1. Register a new user
     reg_payload = {
+        "username": "testuser",
         "email": "testuser@example.com",
         "password": "password123",
-        "full_name": "Test User",
     }
     reg_resp = await client.post("/api/v1/auth/register", json=reg_payload)
     assert reg_resp.status_code == 201
     reg_data = reg_resp.json()
-    assert reg_data["user"]["email"] == "testuser@example.com"
-    assert "access_token" in reg_data
+    assert reg_data["email"] == "testuser@example.com"
+    assert reg_data["username"] == "testuser"
 
     # 2. Login with registered user
     login_payload = {
@@ -26,6 +26,7 @@ async def test_register_and_login(client: AsyncClient):
     token_data = login_resp.json()
     token = token_data["access_token"]
     assert token
+    assert token_data["user"]["email"] == "testuser@example.com"
 
     # 3. Get profile (/me)
     headers = {"Authorization": f"Bearer {token}"}

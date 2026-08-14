@@ -83,7 +83,7 @@ export default function NotebookToolbar({
             onChange={(e) =>
               onSelectConnection(e.target.value ? parseInt(e.target.value) : undefined)
             }
-            style={{ width: "200px", padding: "6px 12px", fontSize: "13px" }}
+            style={{ width: "200px", padding: "6px 12px", fontSize: "13px", background: "#0f1220", color: "#f1f5f9" }}
           >
             <option value="">-- No Connection --</option>
             {connections.map((c) => (
