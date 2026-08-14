@@ -22,7 +22,7 @@ export default function Navbar() {
         borderBottom: "1px solid rgba(255,255,255,0.08)",
         display: "flex",
         alignItems: "center",
-        justify-content: "space-between",
+        justifyContent: "space-between",
         padding: "0 24px",
         position: "sticky",
         top: 0,
@@ -38,7 +38,7 @@ export default function Navbar() {
             background: "linear-gradient(135deg, #6366f1, #10b981)",
             display: "flex",
             alignItems: "center",
-            justify-content: "center",
+            justifyContent: "center",
             boxShadow: "0 2px 10px rgba(99,102,241,0.3)",
           }}
         >
@@ -58,7 +58,7 @@ export default function Navbar() {
           <>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <span className="badge badge-emerald">{user.role}</span>
-              <span style={{ fontSize: "13px", color: "#cbd5e1" }}>{user.username}</span>
+              <span style={{ fontSize: "13px", color: "#cbd5e1" }}>{user.email || user.username}</span>
             </div>
             <button className="btn btn-ghost btn-sm" onClick={handleLogout}>
               Logout

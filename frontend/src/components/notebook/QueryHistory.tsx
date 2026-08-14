@@ -79,7 +79,7 @@ export default function QueryHistory({
           borderBottom: "1px solid rgba(255,255,255,0.08)",
           display: "flex",
           alignItems: "center",
-          justify-content: "space-between",
+          justifyContent: "space-between",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -98,7 +98,7 @@ export default function QueryHistory({
           borderBottom: "1px solid rgba(255,255,255,0.04)",
           display: "flex",
           alignItems: "center",
-          justify-content: "space-between",
+          justifyContent: "space-between",
           gap: "8px",
         }}
       >
@@ -131,7 +131,7 @@ export default function QueryHistory({
       <div style={{ flex: 1, overflowY: "auto", padding: "16px" }}>
         {isLoading ? (
           <div style={{ color: "#94a3b8", fontSize: "13px", display: "flex", alignItems: "center", gap: "8px" }}>
-            <div className="spinner" /> Loading history…
+            <div className="spinner" /> Loading history...
           </div>
         ) : historyItems.length === 0 ? (
           <div style={{ textAlign: "center", color: "#64748b", fontSize: "13px", padding: "40px 0" }}>
@@ -154,7 +154,7 @@ export default function QueryHistory({
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  justify-content: "space-between",
+                  justifyContent: "space-between",
                   marginBottom: "8px",
                   fontSize: "11px",
                 }}
@@ -217,7 +217,7 @@ export default function QueryHistory({
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  justify-content: "space-between",
+                  justifyContent: "space-between",
                   fontSize: "11px",
                   color: "#64748b",
                 }}

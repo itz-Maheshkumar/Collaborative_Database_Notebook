@@ -56,7 +56,7 @@ export default function CellEditor({
       <div
         style={{
           display: "flex",
-          justify-content: "space-between",
+          justifyContent: "space-between",
           alignItems: "center",
           padding: "8px 16px",
           background: "rgba(255,255,255,0.02)",
@@ -84,11 +84,7 @@ export default function CellEditor({
             disabled={cell.status === "running"}
             title="Run Query (Ctrl + Enter)"
           >
-            {cell.status === "running" ? (
-              <><div className="spinner" /> Running…</>
-            ) : (
-              <>▶ Run</>
-            )}
+            {cell.status === "running" ? "Running..." : "▶ Run"}
           </button>
           <button
             className="btn btn-ghost btn-sm"

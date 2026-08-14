@@ -183,7 +183,6 @@ export default function TutorialViewer({
                   textAlign: "left",
                   padding: "8px 16px",
                   background: isActive ? "rgba(99,102,241,0.12)" : "transparent",
-                  borderLeft: isActive ? "2px solid #6366f1" : "2px solid transparent",
                   cursor: "pointer",
                   display: "flex",
                   alignItems: "center",

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/layout/Navbar";
 import Sidebar from "@/components/layout/Sidebar";
@@ -94,7 +93,7 @@ export default function NotebooksPage() {
               onClick={handleCreateNotebook}
               disabled={isCreating}
             >
-              {isCreating ? <><div className="spinner" /> Creating…</> : "+ New Notebook"}
+              {isCreating ? "Creating..." : "+ New Notebook"}
             </button>
           </div>
 
@@ -107,7 +106,7 @@ export default function NotebooksPage() {
           {/* List */}
           {isLoading ? (
             <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "#94a3b8" }}>
-              <div className="spinner" /> Loading notebooks…
+              <div className="spinner" /> Loading notebooks...
             </div>
           ) : notebooks.length === 0 ? (
             <div
@@ -138,7 +137,7 @@ export default function NotebooksPage() {
                     cursor: "pointer",
                     display: "flex",
                     flexDirection: "column",
-                    justify-content: "space-between",
+                    justifyContent: "space-between",
                   }}
                 >
                   <div>

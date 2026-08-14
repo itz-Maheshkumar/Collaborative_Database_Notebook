@@ -64,7 +64,7 @@ export default function SchemaExplorer({ connectionId }: SchemaExplorerProps) {
   if (isLoading) {
     return (
       <div style={{ padding: "20px 14px", color: "#94a3b8", fontSize: "13px", display: "flex", alignItems: "center", gap: "8px" }}>
-        <div className="spinner" /> Introspecting database schema…
+        <div className="spinner" /> Introspecting database schema...
       </div>
     );
   }
@@ -106,7 +106,7 @@ export default function SchemaExplorer({ connectionId }: SchemaExplorerProps) {
           borderBottom: "1px solid rgba(255,255,255,0.06)",
           display: "flex",
           alignItems: "center",
-          justify-content: "space-between",
+          justifyContent: "space-between",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
@@ -134,7 +134,7 @@ export default function SchemaExplorer({ connectionId }: SchemaExplorerProps) {
         <input
           type="text"
           className="input"
-          placeholder="Filter tables & columns…"
+          placeholder="Filter tables & columns..."
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           style={{ padding: "5px 10px", fontSize: "12px" }}
@@ -153,7 +153,7 @@ export default function SchemaExplorer({ connectionId }: SchemaExplorerProps) {
             fontFamily: "var(--font-mono)",
           }}
         >
-          Copied &quot;{copiedText}&quot;
+          {`Copied "${copiedText}"`}
         </div>
       )}
 
@@ -174,7 +174,7 @@ export default function SchemaExplorer({ connectionId }: SchemaExplorerProps) {
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    justify-content: "space-between",
+                    justifyContent: "space-between",
                     padding: "6px 14px",
                     cursor: "pointer",
                     fontSize: "12.5px",
@@ -230,7 +230,7 @@ export default function SchemaExplorer({ connectionId }: SchemaExplorerProps) {
                         style={{
                           display: "flex",
                           alignItems: "center",
-                          justify-content: "space-between",
+                          justifyContent: "space-between",
                           padding: "3px 0",
                           fontSize: "11.5px",
                           fontFamily: "var(--font-mono)",

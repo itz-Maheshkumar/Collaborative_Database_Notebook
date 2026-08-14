@@ -41,7 +41,7 @@ export default function NotebookToolbar({
         padding: "16px 24px",
         marginBottom: "24px",
         display: "flex",
-        justify-content: "space-between",
+        justifyContent: "space-between",
         alignItems: "center",
         flexWrap: "wrap",
         gap: "16px",

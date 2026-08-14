@@ -1,5 +1,21 @@
 import { getToken } from './auth';
-import { TokenResponse, User, SchemaTreeResponse, QueryHistoryItem, TutorialProgressItem, AdminUser, AnalyticsData, AuditLogListResponse } from './types';
+import {
+  TokenResponse,
+  User,
+  Connection,
+  ConnectionCreate,
+  ConnectionTestResult,
+  Notebook,
+  NotebookCreate,
+  NotebookCell,
+  QueryResult,
+  SchemaTreeResponse,
+  QueryHistoryItem,
+  TutorialProgressItem,
+  AdminUser,
+  AnalyticsData,
+  AuditLogListResponse,
+} from './types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 

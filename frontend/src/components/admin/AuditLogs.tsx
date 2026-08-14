@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 
 interface AuditLogEntry {
   id: number;
@@ -111,7 +111,7 @@ export default function AuditLogs({
               <tr>
                 <td colSpan={7} style={{ padding: "28px", textAlign: "center", color: "#94a3b8" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
-                    <div className="spinner" /> Loading logs…
+                    <div className="spinner" /> Loading logs...
                   </div>
                 </td>
               </tr>
@@ -123,9 +123,8 @@ export default function AuditLogs({
               </tr>
             ) : (
               items.map((entry, idx) => (
-                <>
+                <React.Fragment key={entry.id}>
                   <tr
-                    key={entry.id}
                     style={{
                       background: idx % 2 === 0 ? "transparent" : "rgba(255,255,255,0.015)",
                       cursor: "pointer",
@@ -188,7 +187,7 @@ export default function AuditLogs({
 
                   {/* Expanded detail row */}
                   {expandedId === entry.id && (
-                    <tr key={`${entry.id}-detail`} style={{ background: "rgba(0,0,0,0.3)" }}>
+                    <tr style={{ background: "rgba(0,0,0,0.3)" }}>
                       <td colSpan={7} style={{ padding: "12px 14px 16px" }}>
                         <div style={{ fontSize: "11px", color: "#64748b", marginBottom: "6px" }}>
                           Full query — user #{entry.user_id}
@@ -216,7 +215,7 @@ export default function AuditLogs({
                       </td>
                     </tr>
                   )}
-                </>
+                </React.Fragment>
               ))
             )}
           </tbody>
