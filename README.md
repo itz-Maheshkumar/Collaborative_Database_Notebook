@@ -19,7 +19,7 @@ Development is broken into **10 sequential modules**. Each module is self-contai
 | **M7** | [Query History](#m7-query-history) | Execution log model, history panel UI, re-run / copy actions | ✅ Complete |
 | **M8** | [In-App Tutorials](#m8-in-app-tutorials) | Static markdown content for all 4 DBs, tutorial viewer, progress tracking | ✅ Complete |
 | **M9** | [Admin Dashboard](#m9-admin-dashboard) | User management, analytics overview, audit log, role management endpoints | ✅ Complete |
-| **M10** | [CI/CD & Deployment](#m10-cicd--deployment) | GitHub Actions CI + CD workflows, Docker images, smoke tests | ⬜ Pending |
+| **M10** | [CI/CD & Deployment](#m10-cicd--deployment) | GitHub Actions CI + CD workflows, Docker images, smoke tests | ✅ Complete |
 
 ---
 
