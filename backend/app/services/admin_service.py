@@ -3,7 +3,7 @@ from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
 
-from app.models.user import User
+from app.models.user import User, UserRole, UserStatus
 from app.models.notebook import Notebook
 from app.models.connection import Connection
 from app.models.history import QueryHistory
@@ -49,7 +49,7 @@ async def list_users(db: AsyncSession) -> List[AdminUserResponse]:
                 email=u.email,
                 full_name=getattr(u, "full_name", None),
                 role=u.role,
-                is_active=getattr(u, "is_active", True),
+                is_active=u.status != UserStatus.BLOCKED,
                 created_at=u.created_at,
                 notebook_count=nb_map.get(u.id, 0),
                 connection_count=conn_map.get(u.id, 0),
@@ -65,14 +65,45 @@ async def update_user(db: AsyncSession, user_id: int, role: Optional[str], is_ac
     if not user:
         return None
     if role is not None:
-        user.role = role
-    if is_active is not None and hasattr(user, "is_active"):
-        user.is_active = is_active
+        try:
+            # `role` arrives as a plain string (e.g. "admin") from the API
+            # request body. Assigning that string directly to the mapped
+            # Enum column fails validation on flush, so it must be coerced
+            # to the actual UserRole member first.
+            user.role = UserRole(role)
+        except ValueError:
+            raise ValueError(
+                f"Invalid role '{role}'. Must be one of: "
+                f"{', '.join(r.value for r in UserRole)}"
+            )
+    if is_active is not None:
+        # There is no `is_active` column on the User model — active/disabled
+        # is represented by the `status` field instead, so map the boolean
+        # onto it rather than silently no-oping.
+        user.status = UserStatus.ACTIVE if is_active else UserStatus.BLOCKED
     if full_name is not None and hasattr(user, "full_name"):
         user.full_name = full_name
     await db.commit()
     await db.refresh(user)
     return user
+
+
+async def get_user_counts(db: AsyncSession, user_id: int) -> tuple[int, int, int]:
+    """Return (notebook_count, connection_count, query_count) for a single user.
+
+    Used after admin_update_user so the PATCH response reflects the user's
+    real stats instead of the zeroes AdminUserResponse defaults to.
+    """
+    notebook_count = (await db.execute(
+        select(func.count(Notebook.id)).where(Notebook.user_id == user_id)
+    )).scalar_one()
+    connection_count = (await db.execute(
+        select(func.count(Connection.id)).where(Connection.user_id == user_id)
+    )).scalar_one()
+    query_count = (await db.execute(
+        select(func.count(QueryHistory.id)).where(QueryHistory.user_id == user_id)
+    )).scalar_one()
+    return notebook_count, connection_count, query_count
 
 
 async def get_analytics(db: AsyncSession) -> AnalyticsOverviewResponse:
@@ -81,8 +112,8 @@ async def get_analytics(db: AsyncSession) -> AnalyticsOverviewResponse:
 
     total_users = (await db.execute(select(func.count(User.id)))).scalar_one()
     active_users = (await db.execute(
-        select(func.count(User.id)).where(User.is_active == True)  # noqa: E712
-    )).scalar_one() if hasattr(User, "is_active") else total_users
+        select(func.count(User.id)).where(User.status != UserStatus.BLOCKED)
+    )).scalar_one()
 
     total_notebooks = (await db.execute(select(func.count(Notebook.id)))).scalar_one()
     total_connections = (await db.execute(select(func.count(Connection.id)))).scalar_one()

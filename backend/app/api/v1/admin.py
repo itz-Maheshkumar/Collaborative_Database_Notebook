@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
 from app.api.deps import get_current_admin
-from app.models.user import User
+from app.models.user import User, UserStatus
 from app.schemas.admin import (
     AdminUserResponse,
     AdminUserUpdate,
@@ -16,6 +16,7 @@ from app.services.admin_service import (
     update_user,
     get_analytics,
     get_audit_logs,
+    get_user_counts,
 )
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -38,26 +39,35 @@ async def admin_update_user(
     db: AsyncSession = Depends(get_db),
 ):
     """Update a user's role, active status, or display name. Admin only."""
-    updated = await update_user(
-        db,
-        user_id=user_id,
-        role=body.role,
-        is_active=body.is_active,
-        full_name=body.full_name,
-    )
+    try:
+        updated = await update_user(
+            db,
+            user_id=user_id,
+            role=body.role,
+            is_active=body.is_active,
+            full_name=body.full_name,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        )
     if not updated:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"User {user_id} not found",
         )
-    # Build response manually (no notebook/connection/query counts after patch)
+    notebook_count, connection_count, query_count = await get_user_counts(db, updated.id)
     return AdminUserResponse(
         id=updated.id,
         email=updated.email,
         full_name=getattr(updated, "full_name", None),
         role=updated.role,
-        is_active=getattr(updated, "is_active", True),
+        is_active=updated.status != UserStatus.BLOCKED,
         created_at=updated.created_at,
+        notebook_count=notebook_count,
+        connection_count=connection_count,
+        query_count=query_count,
     )
 
 
