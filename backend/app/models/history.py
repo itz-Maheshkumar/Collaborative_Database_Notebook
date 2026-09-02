@@ -1,6 +1,6 @@
 from datetime import datetime
-from typing import Optional
-from sqlalchemy import String, Integer, DateTime, ForeignKey, Text, Float, func
+
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -13,13 +13,13 @@ class QueryHistory(Base):
     user_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    notebook_id: Mapped[Optional[int]] = mapped_column(
+    notebook_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("notebooks.id", ondelete="SET NULL"), nullable=True, index=True
     )
-    cell_id: Mapped[Optional[int]] = mapped_column(
+    cell_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("notebook_cells.id", ondelete="SET NULL"), nullable=True, index=True
     )
-    connection_id: Mapped[Optional[int]] = mapped_column(
+    connection_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("connections.id", ondelete="SET NULL"), nullable=True, index=True
     )
     engine: Mapped[str] = mapped_column(String(50), nullable=False)
@@ -27,7 +27,7 @@ class QueryHistory(Base):
     status: Mapped[str] = mapped_column(String(20), nullable=False)  # success, error
     row_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     execution_time_ms: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
-    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False, index=True

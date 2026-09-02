@@ -1,10 +1,12 @@
 import asyncio
 import sys
+
+from sqlalchemy import select
+
+from app.core.security import get_password_hash
 from app.db.session import AsyncSessionLocal
 from app.models.user import User, UserRole, UserStatus
-from app.core.security import get_password_hash
 from app.services.auth_service import get_user_by_email
-from sqlalchemy import select
 
 
 async def create_or_promote_admin(username="admin", email="admin@example.com", password="adminpassword"):

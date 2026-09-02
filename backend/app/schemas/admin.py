@@ -1,14 +1,13 @@
 from datetime import datetime
-from typing import Optional, List
-from pydantic import BaseModel, EmailStr, ConfigDict
 
+from pydantic import BaseModel, ConfigDict, EmailStr
 
 # ── User management ──────────────────────────────────────────────
 
 class AdminUserResponse(BaseModel):
     id: int
     email: EmailStr
-    full_name: Optional[str] = None
+    full_name: str | None = None
     role: str
     is_active: bool
     created_at: datetime
@@ -20,9 +19,9 @@ class AdminUserResponse(BaseModel):
 
 
 class AdminUserUpdate(BaseModel):
-    role: Optional[str] = None
-    is_active: Optional[bool] = None
-    full_name: Optional[str] = None
+    role: str | None = None
+    is_active: bool | None = None
+    full_name: str | None = None
 
 
 # ── Analytics ────────────────────────────────────────────────────
@@ -51,12 +50,12 @@ class AuditLogEntry(BaseModel):
     status: str
     row_count: int
     execution_time_ms: float
-    error_message: Optional[str] = None
+    error_message: str | None = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class AuditLogListResponse(BaseModel):
-    items: List[AuditLogEntry]
+    items: list[AuditLogEntry]
     total: int

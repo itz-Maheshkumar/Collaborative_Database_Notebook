@@ -1,10 +1,10 @@
-from typing import Dict, Any, List
+from typing import Any
 
 from app.models.connection import DatabaseEngine
-from app.schemas.schema import SchemaTreeResponse, TableInfo, ColumnInfo
+from app.schemas.schema import ColumnInfo, SchemaTreeResponse, TableInfo
 
 
-async def introspect_postgres(params: Dict[str, Any]) -> SchemaTreeResponse:
+async def introspect_postgres(params: dict[str, Any]) -> SchemaTreeResponse:
     try:
         import asyncpg
     except ImportError:
@@ -43,7 +43,7 @@ async def introspect_postgres(params: Dict[str, Any]) -> SchemaTreeResponse:
                 """
             )
 
-            cols_by_table: Dict[str, List[ColumnInfo]] = {}
+            cols_by_table: dict[str, list[ColumnInfo]] = {}
             for col in cols_records:
                 t_name = col["table_name"]
                 if t_name not in cols_by_table:
@@ -83,7 +83,7 @@ async def introspect_postgres(params: Dict[str, Any]) -> SchemaTreeResponse:
         )
 
 
-async def introspect_mysql(params: Dict[str, Any]) -> SchemaTreeResponse:
+async def introspect_mysql(params: dict[str, Any]) -> SchemaTreeResponse:
     try:
         import aiomysql
     except ImportError:
@@ -116,7 +116,7 @@ async def introspect_mysql(params: Dict[str, Any]) -> SchemaTreeResponse:
                 )
                 rows = await cursor.fetchall()
 
-                cols_by_table: Dict[str, List[ColumnInfo]] = {}
+                cols_by_table: dict[str, list[ColumnInfo]] = {}
                 for row in rows:
                     t_name = row["table_name"]
                     if t_name not in cols_by_table:
@@ -149,7 +149,7 @@ async def introspect_mysql(params: Dict[str, Any]) -> SchemaTreeResponse:
         )
 
 
-async def introspect_sqlite(params: Dict[str, Any]) -> SchemaTreeResponse:
+async def introspect_sqlite(params: dict[str, Any]) -> SchemaTreeResponse:
     try:
         import aiosqlite
     except ImportError:
@@ -201,7 +201,7 @@ async def introspect_sqlite(params: Dict[str, Any]) -> SchemaTreeResponse:
         )
 
 
-async def introspect_mongodb(params: Dict[str, Any]) -> SchemaTreeResponse:
+async def introspect_mongodb(params: dict[str, Any]) -> SchemaTreeResponse:
     try:
         import motor.motor_asyncio as motor
     except ImportError:
@@ -261,7 +261,7 @@ async def introspect_mongodb(params: Dict[str, Any]) -> SchemaTreeResponse:
         )
 
 
-async def get_schema_tree(params: Dict[str, Any]) -> SchemaTreeResponse:
+async def get_schema_tree(params: dict[str, Any]) -> SchemaTreeResponse:
     """Dispatches schema introspection based on database engine."""
     engine: DatabaseEngine = params["engine"]
 

@@ -1,25 +1,25 @@
-from typing import Optional
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.user import User, UserStatus
-from app.schemas.user import UserCreate
 from app.core.security import get_password_hash, verify_password
+from app.models.user import User
+from app.schemas.user import UserCreate
 
 
-async def get_user_by_email(db: AsyncSession, email: str) -> Optional[User]:
+async def get_user_by_email(db: AsyncSession, email: str) -> User | None:
     """Retrieve user by email address."""
     result = await db.execute(select(User).where(User.email == email))
     return result.scalars().first()
 
 
-async def get_user_by_username(db: AsyncSession, username: str) -> Optional[User]:
+async def get_user_by_username(db: AsyncSession, username: str) -> User | None:
     """Retrieve user by username."""
     result = await db.execute(select(User).where(User.username == username))
     return result.scalars().first()
 
 
-async def get_user_by_id(db: AsyncSession, user_id: int) -> Optional[User]:
+async def get_user_by_id(db: AsyncSession, user_id: int) -> User | None:
     """Retrieve user by ID."""
     result = await db.execute(select(User).where(User.id == user_id))
     return result.scalars().first()
@@ -41,7 +41,7 @@ async def create_user(db: AsyncSession, user_in: UserCreate) -> User:
 
 async def authenticate_user(
     db: AsyncSession, email: str, password: str
-) -> Optional[User]:
+) -> User | None:
     """Authenticate user by email and password."""
     user = await get_user_by_email(db, email)
     if not user:

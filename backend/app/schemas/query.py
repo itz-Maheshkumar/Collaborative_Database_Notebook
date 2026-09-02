@@ -1,4 +1,5 @@
-from typing import Optional, List, Dict, Any
+from typing import Any
+
 from pydantic import BaseModel
 
 
@@ -10,9 +11,9 @@ class QueryExecuteRequest(BaseModel):
 
 class QueryExecuteResponse(BaseModel):
     success: bool
-    columns: List[str] = []
-    rows: List[Dict[str, Any]] = []
+    columns: list[str] = []
+    rows: list[dict[str, Any]] = []
     row_count: int = 0
     execution_time_ms: float = 0.0
-    error_message: Optional[str] = None
-    engine: Optional[str] = None
+    error_message: str | None = None
+    engine: str | None = None

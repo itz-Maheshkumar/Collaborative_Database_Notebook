@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Any
 
 from app.connectors.base import BaseConnector
 
@@ -6,7 +6,7 @@ from app.connectors.base import BaseConnector
 class MySQLConnector(BaseConnector):
     """Async MySQL connector using aiomysql."""
 
-    async def execute(self, query_text: str) -> Dict[str, Any]:
+    async def execute(self, query_text: str) -> dict[str, Any]:
         try:
             import aiomysql  # lazy import
         except ImportError:

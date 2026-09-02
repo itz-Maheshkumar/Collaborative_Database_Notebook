@@ -1,21 +1,21 @@
 import time
-from typing import List
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.session import get_db
 from app.api.deps import get_current_user
-from app.models.user import User
+from app.core.security import encrypt_string
+from app.db.session import get_db
 from app.models.connection import Connection, DatabaseEngine
+from app.models.user import User
 from app.schemas.connection import (
     ConnectionCreate,
-    ConnectionUpdate,
     ConnectionResponse,
     ConnectionTestRequest,
     ConnectionTestResult,
+    ConnectionUpdate,
 )
-from app.core.security import encrypt_string, decrypt_string
 
 router = APIRouter(prefix="/connections", tags=["connections"])
 
@@ -51,7 +51,7 @@ async def create_connection(
     return response_data
 
 
-@router.get("", response_model=List[ConnectionResponse])
+@router.get("", response_model=list[ConnectionResponse])
 async def list_connections(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),

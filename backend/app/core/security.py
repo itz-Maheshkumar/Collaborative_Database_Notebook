@@ -1,8 +1,9 @@
-from datetime import datetime, timedelta, timezone
-from typing import Any, Optional, Union
+from datetime import UTC, datetime, timedelta
+from typing import Any
+
 import bcrypt
-from jose import jwt, JWTError
 from cryptography.fernet import Fernet
+from jose import JWTError, jwt
 
 from app.core.config import settings
 
@@ -26,15 +27,15 @@ def get_password_hash(password: str) -> str:
 
 
 def create_access_token(
-    subject: Union[str, int],
+    subject: str | int,
     role: str = "user",
-    expires_delta: Optional[timedelta] = None,
+    expires_delta: timedelta | None = None,
 ) -> str:
     """Create a JWT access token containing subject (user_id) and role claim."""
     if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
+        expire = datetime.now(UTC) + expires_delta
     else:
-        expire = datetime.now(timezone.utc) + timedelta(
+        expire = datetime.now(UTC) + timedelta(
             minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
         )
 
@@ -49,7 +50,7 @@ def create_access_token(
     return encoded_jwt
 
 
-def decode_access_token(token: str) -> Optional[dict[str, Any]]:
+def decode_access_token(token: str) -> dict[str, Any] | None:
     """Decode and validate a JWT access token."""
     try:
         payload = jwt.decode(

@@ -1,12 +1,12 @@
 from fastapi import APIRouter
 
+from app.api.v1.admin import router as admin_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.connections import router as connections_router
 from app.api.v1.notebooks import router as notebooks_router
 from app.api.v1.query import router as query_router
 from app.api.v1.schema import router as schema_router
 from app.api.v1.tutorials import router as tutorials_router
-from app.api.v1.admin import router as admin_router
 
 api_v1_router = APIRouter()
 
