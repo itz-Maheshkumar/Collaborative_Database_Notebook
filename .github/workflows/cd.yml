@@ -1,4 +1,4 @@
-name: CD Pipeline - Build & Release Containers
+name: CD
 
 on:
   push:
@@ -15,6 +15,11 @@ on:
           - staging
           - production
 
+# Never cancel a deploy mid-flight; queue same-ref runs instead.
+concurrency:
+  group: cd-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
   packages: write
@@ -25,11 +30,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Code
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
-        uses: actions/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v3
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -38,7 +43,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract Metadata for Backend
+      - name: Extract metadata for backend
         id: meta-backend
         uses: docker/metadata-action@v5
         with:
@@ -49,7 +54,7 @@ jobs:
             type=sha,prefix=sha-
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Build & Push Backend Image
+      - name: Build & push backend image
         uses: docker/build-push-action@v5
         with:
           context: ./backend
@@ -57,10 +62,10 @@ jobs:
           push: true
           tags: ${{ steps.meta-backend.outputs.tags }}
           labels: ${{ steps.meta-backend.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
 
-      - name: Extract Metadata for Frontend
+      - name: Extract metadata for frontend
         id: meta-frontend
         uses: docker/metadata-action@v5
         with:
@@ -71,7 +76,7 @@ jobs:
             type=sha,prefix=sha-
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Build & Push Frontend Image
+      - name: Build & push frontend image
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
@@ -79,33 +84,55 @@ jobs:
           push: true
           tags: ${{ steps.meta-frontend.outputs.tags }}
           labels: ${{ steps.meta-frontend.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
 
+  # Runs for: a version-tag push (part of the normal release flow), or a
+  # manual dispatch that explicitly chose "staging".
   deploy-staging:
     name: Deploy to Staging
     runs-on: ubuntu-latest
     needs: [build-and-publish]
-    if: github.event.inputs.environment == 'staging' || startsWith(github.ref, 'refs/tags/v')
-    environment: staging
+    if: |
+      startsWith(github.ref, 'refs/tags/v') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
+    environment:
+      name: staging
 
     steps:
-      - name: Deployment Step
+      - name: Deploy
         run: |
-          echo "Deploying to Staging Environment with version ${{ github.ref_name }}..."
+          echo "Deploying to Staging with version ${{ github.ref_name }}..."
           echo "Images available at ghcr.io/${{ github.repository }}"
           echo "Deployment successful."
 
+  # Production only runs after staging has actually succeeded for a
+  # tag-triggered release (previously both jobs shared the exact same
+  # `startsWith(github.ref, 'refs/tags/v')` condition with no ordering
+  # between them, so pushing a tag deployed to production and staging in
+  # parallel with no gate in between). A manual dispatch that explicitly
+  # chose "production" can still go straight there without waiting on a
+  # staging run that was never requested — `needs.deploy-staging.result`
+  # is checked as 'success' or 'skipped' rather than requiring the job to
+  # have run at all.
   deploy-production:
     name: Deploy to Production
     runs-on: ubuntu-latest
-    needs: [build-and-publish]
-    if: github.event.inputs.environment == 'production' || startsWith(github.ref, 'refs/tags/v')
-    environment: production
+    needs: [build-and-publish, deploy-staging]
+    if: |
+      always() &&
+      needs.build-and-publish.result == 'success' &&
+      (needs.deploy-staging.result == 'success' || needs.deploy-staging.result == 'skipped') &&
+      (
+        startsWith(github.ref, 'refs/tags/v') ||
+        (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
+      )
+    environment:
+      name: production
 
     steps:
-      - name: Deployment Step
+      - name: Deploy
         run: |
-          echo "Deploying to Production Environment with version ${{ github.ref_name }}..."
+          echo "Deploying to Production with version ${{ github.ref_name }}..."
           echo "Images available at ghcr.io/${{ github.repository }}"
           echo "Deployment successful."
