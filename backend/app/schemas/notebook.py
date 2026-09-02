@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, List
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -14,20 +14,20 @@ class CellCreate(CellBase):
 
 
 class CellUpdate(BaseModel):
-    position: Optional[int] = None
-    cell_type: Optional[str] = None
-    content: Optional[str] = None
-    last_output: Optional[str] = None
-    status: Optional[str] = None
-    execution_time_ms: Optional[float] = None
+    position: int | None = None
+    cell_type: str | None = None
+    content: str | None = None
+    last_output: str | None = None
+    status: str | None = None
+    execution_time_ms: float | None = None
 
 
 class CellResponse(CellBase):
     id: int
     notebook_id: int
-    last_output: Optional[str] = None
+    last_output: str | None = None
     status: str
-    execution_time_ms: Optional[float] = None
+    execution_time_ms: float | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -36,8 +36,8 @@ class CellResponse(CellBase):
 
 class NotebookBase(BaseModel):
     title: str = Field("Untitled Notebook", max_length=255)
-    description: Optional[str] = None
-    connection_id: Optional[int] = None
+    description: str | None = None
+    connection_id: int | None = None
 
 
 class NotebookCreate(NotebookBase):
@@ -45,9 +45,9 @@ class NotebookCreate(NotebookBase):
 
 
 class NotebookUpdate(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
-    connection_id: Optional[int] = None
+    title: str | None = None
+    description: str | None = None
+    connection_id: int | None = None
 
 
 class NotebookResponse(NotebookBase):
@@ -55,10 +55,10 @@ class NotebookResponse(NotebookBase):
     user_id: int
     created_at: datetime
     updated_at: datetime
-    cells: List[CellResponse] = []
+    cells: list[CellResponse] = []
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class ReorderCellsRequest(BaseModel):
-    cell_ids: List[int]
+    cell_ids: list[int]

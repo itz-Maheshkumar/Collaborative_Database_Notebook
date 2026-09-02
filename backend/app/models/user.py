@@ -1,17 +1,18 @@
 import enum
 from datetime import datetime
-from sqlalchemy import String, DateTime, Enum, func
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from sqlalchemy import DateTime, Enum, String, func
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
 
 
-class UserRole(str, enum.Enum):
+class UserRole(enum.StrEnum):
     USER = "user"
     ADMIN = "admin"
 
 
-class UserStatus(str, enum.Enum):
+class UserStatus(enum.StrEnum):
     ACTIVE = "active"
     WARNED = "warned"
     BLOCKED = "blocked"

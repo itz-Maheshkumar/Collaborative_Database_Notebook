@@ -1,20 +1,20 @@
-from typing import List
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.db.session import get_db
 from app.api.deps import get_current_user
-from app.models.user import User
+from app.db.session import get_db
 from app.models.notebook import Notebook, NotebookCell
+from app.models.user import User
 from app.schemas.notebook import (
-    NotebookCreate,
-    NotebookUpdate,
-    NotebookResponse,
     CellCreate,
-    CellUpdate,
     CellResponse,
+    CellUpdate,
+    NotebookCreate,
+    NotebookResponse,
+    NotebookUpdate,
     ReorderCellsRequest,
 )
 
@@ -56,7 +56,7 @@ async def create_notebook(
     return result.scalars().first()
 
 
-@router.get("", response_model=List[NotebookResponse])
+@router.get("", response_model=list[NotebookResponse])
 async def list_notebooks(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),

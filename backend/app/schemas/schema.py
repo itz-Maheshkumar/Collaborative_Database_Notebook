@@ -1,4 +1,4 @@
-from typing import Optional, List
+
 from pydantic import BaseModel
 
 
@@ -12,11 +12,11 @@ class ColumnInfo(BaseModel):
 class TableInfo(BaseModel):
     name: str
     type: str = "table"  # "table", "view", "collection"
-    columns: List[ColumnInfo] = []
+    columns: list[ColumnInfo] = []
 
 
 class SchemaTreeResponse(BaseModel):
     engine: str
     database_name: str
-    tables: List[TableInfo] = []
-    error_message: Optional[str] = None
+    tables: list[TableInfo] = []
+    error_message: str | None = None

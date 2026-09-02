@@ -1,5 +1,4 @@
-from typing import Dict, Any, List
-import re
+from typing import Any
 
 from app.connectors.base import BaseConnector
 
@@ -7,7 +6,7 @@ from app.connectors.base import BaseConnector
 class SQLiteConnector(BaseConnector):
     """Async SQLite connector using aiosqlite. Supports multi-statement scripts."""
 
-    def _split_statements(self, script: str) -> List[str]:
+    def _split_statements(self, script: str) -> list[str]:
         # Remove comments and split by semicolon not inside quotes
         statements = []
         # Simple splitting by semicolon
@@ -17,7 +16,7 @@ class SQLiteConnector(BaseConnector):
                 statements.append(s)
         return statements
 
-    async def execute(self, query_text: str) -> Dict[str, Any]:
+    async def execute(self, query_text: str) -> dict[str, Any]:
         try:
             import aiosqlite  # lazy import
         except ImportError:

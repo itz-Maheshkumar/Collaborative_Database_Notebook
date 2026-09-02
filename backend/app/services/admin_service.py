@@ -1,12 +1,12 @@
-from datetime import datetime, timedelta, timezone
-from typing import List, Optional
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, and_
+from datetime import UTC, datetime, timedelta
 
-from app.models.user import User, UserRole, UserStatus
-from app.models.notebook import Notebook
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.models.connection import Connection
 from app.models.history import QueryHistory
+from app.models.notebook import Notebook
+from app.models.user import User, UserRole, UserStatus
 from app.schemas.admin import (
     AdminUserResponse,
     AnalyticsOverviewResponse,
@@ -15,7 +15,7 @@ from app.schemas.admin import (
 )
 
 
-async def list_users(db: AsyncSession) -> List[AdminUserResponse]:
+async def list_users(db: AsyncSession) -> list[AdminUserResponse]:
     """Return all users with per-user aggregated stats."""
     users_result = await db.execute(select(User).order_by(User.created_at.desc()))
     users = users_result.scalars().all()
@@ -59,7 +59,7 @@ async def list_users(db: AsyncSession) -> List[AdminUserResponse]:
     return result
 
 
-async def update_user(db: AsyncSession, user_id: int, role: Optional[str], is_active: Optional[bool], full_name: Optional[str]) -> Optional[User]:
+async def update_user(db: AsyncSession, user_id: int, role: str | None, is_active: bool | None, full_name: str | None) -> User | None:
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalars().first()
     if not user:
@@ -71,11 +71,11 @@ async def update_user(db: AsyncSession, user_id: int, role: Optional[str], is_ac
             # Enum column fails validation on flush, so it must be coerced
             # to the actual UserRole member first.
             user.role = UserRole(role)
-        except ValueError:
+        except ValueError as exc:
             raise ValueError(
                 f"Invalid role '{role}'. Must be one of: "
                 f"{', '.join(r.value for r in UserRole)}"
-            )
+            ) from exc
     if is_active is not None:
         # There is no `is_active` column on the User model — active/disabled
         # is represented by the `status` field instead, so map the boolean
@@ -107,7 +107,7 @@ async def get_user_counts(db: AsyncSession, user_id: int) -> tuple[int, int, int
 
 
 async def get_analytics(db: AsyncSession) -> AnalyticsOverviewResponse:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     seven_days_ago = now - timedelta(days=7)
 
     total_users = (await db.execute(select(func.count(User.id)))).scalar_one()
@@ -157,7 +157,7 @@ async def get_audit_logs(
     db: AsyncSession,
     limit: int = 100,
     offset: int = 0,
-    status_filter: Optional[str] = None,
+    status_filter: str | None = None,
 ) -> AuditLogListResponse:
     stmt = (
         select(QueryHistory, User.email.label("user_email"))

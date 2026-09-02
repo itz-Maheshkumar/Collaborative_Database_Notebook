@@ -1,13 +1,13 @@
 import enum
 from datetime import datetime
-from typing import Optional
-from sqlalchemy import String, Integer, DateTime, Enum, ForeignKey, Text, func
+
+from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 
 
-class DatabaseEngine(str, enum.Enum):
+class DatabaseEngine(enum.StrEnum):
     POSTGRESQL = "postgresql"
     MYSQL = "mysql"
     MONGODB = "mongodb"
@@ -25,12 +25,12 @@ class Connection(Base):
     engine: Mapped[DatabaseEngine] = mapped_column(
         Enum(DatabaseEngine), nullable=False, index=True
     )
-    host: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    port: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    database_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    username: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    encrypted_password: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    extra_params: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON or query string params
+    host: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    port: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    database_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    username: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    encrypted_password: Mapped[str | None] = mapped_column(Text, nullable=True)
+    extra_params: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON or query string params
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

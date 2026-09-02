@@ -1,6 +1,6 @@
 from datetime import datetime
-from typing import Optional
-from pydantic import BaseModel, EmailStr, ConfigDict
+
+from pydantic import BaseModel, ConfigDict, EmailStr
 
 from app.models.user import UserRole, UserStatus
 
@@ -36,5 +36,5 @@ class Token(BaseModel):
 
 
 class TokenData(BaseModel):
-    user_id: Optional[int] = None
-    role: Optional[str] = None
+    user_id: int | None = None
+    role: str | None = None

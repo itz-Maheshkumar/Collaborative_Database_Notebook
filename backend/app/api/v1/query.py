@@ -1,17 +1,17 @@
 import json
-from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete
 
-from app.db.session import get_db
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import delete, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.api.deps import get_current_user
-from app.models.user import User
-from app.models.notebook import Notebook, NotebookCell
+from app.db.session import get_db
 from app.models.history import QueryHistory
-from app.schemas.query import QueryExecuteRequest, QueryExecuteResponse
+from app.models.notebook import Notebook, NotebookCell
+from app.models.user import User
 from app.schemas.history import QueryHistoryResponse
-from app.services.query_service import get_connection_params, execute_query
+from app.schemas.query import QueryExecuteRequest, QueryExecuteResponse
+from app.services.query_service import execute_query, get_connection_params
 
 router = APIRouter(prefix="/query", tags=["query"])
 
@@ -106,11 +106,11 @@ async def execute_cell_query(
     )
 
 
-@router.get("/history", response_model=List[QueryHistoryResponse])
+@router.get("/history", response_model=list[QueryHistoryResponse])
 async def list_query_history(
-    notebook_id: Optional[int] = Query(None),
-    connection_id: Optional[int] = Query(None),
-    status_filter: Optional[str] = Query(None, alias="status"),
+    notebook_id: int | None = Query(None),
+    connection_id: int | None = Query(None),
+    status_filter: str | None = Query(None, alias="status"),
     limit: int = Query(100, le=500),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -133,7 +133,7 @@ async def list_query_history(
 
 @router.delete("/history", status_code=status.HTTP_204_NO_CONTENT)
 async def clear_query_history(
-    notebook_id: Optional[int] = Query(None),
+    notebook_id: int | None = Query(None),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):

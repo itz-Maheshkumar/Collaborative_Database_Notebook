@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Any
 
 from app.connectors.base import BaseConnector
 
@@ -14,10 +14,11 @@ class MongoDBConnector(BaseConnector):
         { "operation": "aggregate", "collection": "users", "pipeline": [...] }
     """
 
-    async def execute(self, query_text: str) -> Dict[str, Any]:
+    async def execute(self, query_text: str) -> dict[str, Any]:
         try:
-            import motor.motor_asyncio as motor  # lazy import
             import json
+
+            import motor.motor_asyncio as motor  # lazy import
         except ImportError:
             return {
                 "success": False,
@@ -28,7 +29,7 @@ class MongoDBConnector(BaseConnector):
             }
 
         try:
-            command: Dict[str, Any] = json.loads(query_text)
+            command: dict[str, Any] = json.loads(query_text)
         except Exception:
             return {
                 "success": False,

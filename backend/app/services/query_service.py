@@ -1,22 +1,22 @@
 import time
-from typing import Dict, Any, Optional
+from typing import Any
 
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.connection import Connection, DatabaseEngine
-from app.core.security import decrypt_string
-from app.connectors.postgres import PostgresConnector
-from app.connectors.mysql import MySQLConnector
-from app.connectors.sqlite import SQLiteConnector
 from app.connectors.mongodb import MongoDBConnector
+from app.connectors.mysql import MySQLConnector
+from app.connectors.postgres import PostgresConnector
+from app.connectors.sqlite import SQLiteConnector
+from app.core.security import decrypt_string
+from app.models.connection import Connection, DatabaseEngine
 
 
 async def get_connection_params(
     db: AsyncSession,
     connection_id: int,
     user_id: int,
-) -> Optional[Dict[str, Any]]:
+) -> dict[str, Any] | None:
     """Fetch a saved connection and decrypt credentials."""
     result = await db.execute(
         select(Connection).where(
@@ -28,7 +28,7 @@ async def get_connection_params(
     if not conn:
         return None
 
-    password: Optional[str] = None
+    password: str | None = None
     if conn.encrypted_password:
         try:
             password = decrypt_string(conn.encrypted_password)
@@ -47,9 +47,9 @@ async def get_connection_params(
 
 
 async def execute_query(
-    params: Dict[str, Any],
+    params: dict[str, Any],
     query_text: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Route query to the correct connector and return a standardised result."""
     engine: DatabaseEngine = params["engine"]
     start = time.perf_counter()
