@@ -1,5 +1,5 @@
 # Multi-stage Dockerfile for FastAPI Backend
-FROM python:3.11-slim AS builder
+FROM python:3.12.10-slim AS builder
 
 WORKDIR /app
 
@@ -12,7 +12,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --user -r requirements.txt
 
 # Final runtime stage
-FROM python:3.11-slim AS runner
+FROM python:3.12.10-slim AS runner
 
 WORKDIR /app
 
