@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Collaborative Database Notebook — Maheshkumar V</title>
+<meta name="description" content="Deep dive into Collaborative Database Notebook — a full-stack, cell-based notebook workspace for querying PostgreSQL, MySQL, SQLite and MongoDB from one browser tab. Architecture, query lifecycle, screens and API." />
+<meta property="og:title" content="Collaborative Database Notebook" />
+<meta property="og:description" content="A cell-based notebook workspace for four database engines — FastAPI + Next.js 14, JWT/RBAC, Fernet-encrypted credentials, full audit trail." />
+<meta property="og:type" content="website" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗂️</text></svg>" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d1117; --bg-alt:#11161d; --terminal-bg:#0a0e14; --border:#22282f;
+  --green:#39FF14; --green-dim:#1f8f0c; --text:#c9d1d9; --text-dim:#6b7280;
+  --white:#f4f4f4; --red:#ff5f56; --yellow:#ffbd2e; --violet:#8b7cf6; --cyan:#38bdf8;
+  --mono:'JetBrains Mono','Fira Code',ui-monospace,Consolas,monospace;
+  --max-width:1080px;
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;scroll-padding-top:80px;}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--mono);line-height:1.65;overflow-x:hidden;-webkit-font-smoothing:antialiased;}
+::selection{background:var(--green);color:#000;}
+img{max-width:100%;display:block;}
+a{color:var(--green);}
+
+#matrix-bg{position:fixed;inset:0;width:100%;height:100%;z-index:0;opacity:.05;pointer-events:none;}
+.scanline{position:fixed;inset:0;pointer-events:none;z-index:1;
+  background:repeating-linear-gradient(to bottom,rgba(255,255,255,.015) 0px,rgba(255,255,255,.015) 1px,transparent 1px,transparent 3px);}
+main,header,footer,nav{position:relative;z-index:2;}
+
+/* ---- progress + nav ---- */
+#progress{position:fixed;top:0;left:0;height:2px;width:0;background:var(--green);z-index:60;box-shadow:0 0 10px var(--green);transition:width .1s linear;}
+.navbar{position:fixed;top:0;left:0;right:0;z-index:50;background:rgba(13,17,23,.88);backdrop-filter:blur(8px);border-bottom:1px solid var(--border);}
+.nav-inner{max-width:var(--max-width);margin:0 auto;padding:.85rem 1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;}
+.back-link{color:var(--green);text-decoration:none;font-size:.85rem;font-weight:700;white-space:nowrap;}
+.back-link:hover{text-decoration:underline;}
+.nav-links{list-style:none;display:flex;gap:1.35rem;margin:0;padding:0;}
+.nav-links a{color:var(--text);text-decoration:none;font-size:.82rem;transition:color .2s;}
+.nav-links a:hover,.nav-links a.active{color:var(--green);}
+.nav-toggle{display:none;flex-direction:column;gap:4px;background:none;border:none;cursor:pointer;padding:4px;}
+.nav-toggle span{width:22px;height:2px;background:var(--green);}
+
+/* ---- shared ---- */
+.section{max-width:var(--max-width);margin:0 auto;padding:4.5rem 1.25rem;}
+.section-title{font-size:1.4rem;color:var(--white);margin:0 0 .4rem;display:flex;align-items:baseline;gap:.5rem;}
+.section-title .tag{color:var(--green);}
+.section-sub{color:var(--text-dim);font-size:.85rem;margin:0 0 2rem;}
+.terminal-window{width:100%;background:var(--terminal-bg);border:1px solid var(--border);border-radius:10px;overflow:hidden;
+  box-shadow:0 0 40px rgba(57,255,20,.05),0 20px 40px rgba(0,0,0,.4);}
+.terminal-bar{display:flex;align-items:center;gap:8px;padding:.7rem 1rem;background:#161b22;border-bottom:1px solid var(--border);}
+.dot{width:11px;height:11px;border-radius:50%;display:inline-block;}
+.dot.red{background:var(--red);} .dot.yellow{background:var(--yellow);} .dot.green{background:#27c93f;}
+.terminal-title{margin-left:.75rem;color:var(--text-dim);font-size:.78rem;}
+.terminal-body{padding:1.5rem 1.75rem 1.85rem;font-size:.92rem;}
+.terminal-body p{margin:.55rem 0;}
+.prompt{color:var(--green);margin-right:.4rem;}
+.dim{color:var(--text-dim);}
+.hl{color:var(--green);}
+.btn{font-family:var(--mono);font-size:.85rem;padding:.6rem 1.1rem;border-radius:6px;text-decoration:none;border:1px solid var(--green);transition:all .2s;display:inline-block;}
+.btn-primary{background:var(--green);color:#000;font-weight:700;}
+.btn-primary:hover{background:transparent;color:var(--green);}
+.btn-outline{color:var(--green);background:transparent;}
+.btn-outline:hover{background:var(--green);color:#000;}
+.reveal{opacity:0;transform:translateY(18px);transition:opacity .55s ease,transform .55s ease;}
+.reveal.in{opacity:1;transform:none;}
+
+/* ---- hero ---- */
+.hero{padding:7.5rem 1.25rem 2rem;max-width:var(--max-width);margin:0 auto;}
+.crumb{font-size:.78rem;color:var(--text-dim);margin-bottom:1rem;}
+.crumb a{color:var(--text-dim);text-decoration:none;}
+.crumb a:hover{color:var(--green);}
+.hero h1{font-size:clamp(1.7rem,4.6vw,2.5rem);margin:.3rem 0 .6rem;color:var(--white);line-height:1.2;}
+.hero-tagline{font-size:1rem;color:var(--text);margin:0 0 1.2rem;max-width:70ch;}
+.badge-row{display:flex;flex-wrap:wrap;gap:.5rem;margin:1rem 0 1.4rem;}
+.badge{border:1px solid var(--green-dim);color:var(--green);background:rgba(57,255,20,.06);padding:.32rem .75rem;border-radius:20px;font-size:.75rem;}
+.hero-links{display:flex;gap:.9rem;flex-wrap:wrap;margin-top:.4rem;}
+.stat-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin:2.5rem 0 0;}
+.stat{background:var(--bg-alt);border:1px solid var(--border);border-radius:10px;padding:1.1rem 1rem;text-align:center;}
+.stat b{display:block;font-size:1.6rem;color:var(--green);line-height:1.1;}
+.stat span{font-size:.72rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;}
+
+/* ---- architecture ---- */
+.arch-wrap{background:var(--bg-alt);border:1px solid var(--border);border-radius:12px;padding:1rem;overflow-x:auto;}
+.arch-svg{width:100%;min-width:760px;height:auto;display:block;}
+.lane{fill:rgba(255,255,255,.015);stroke:var(--border);stroke-width:1;rx:10;}
+.lane-label{fill:var(--text-dim);font-size:11px;letter-spacing:.12em;font-family:var(--mono);}
+.node rect{fill:#0a0e14;stroke:#2c333c;stroke-width:1.2;rx:7;transition:stroke .2s,fill .2s;}
+.node text{fill:var(--text);font-size:11.5px;font-family:var(--mono);text-anchor:middle;pointer-events:none;}
+.node{cursor:pointer;}
+.node:hover rect,.node.sel rect{stroke:var(--green);fill:rgba(57,255,20,.07);}
+.node:hover text,.node.sel text{fill:var(--white);}
+.edge{stroke:#2f3742;stroke-width:1.2;fill:none;stroke-dasharray:5 6;animation:dash 3.5s linear infinite;}
+.edge.up{stroke:rgba(57,255,20,.35);}
+@keyframes dash{to{stroke-dashoffset:-44;}}
+.arch-detail{margin-top:1rem;border:1px dashed var(--border);border-radius:8px;padding:1rem 1.1rem;background:var(--terminal-bg);min-height:96px;}
+.arch-detail h4{margin:0 0 .35rem;color:var(--green);font-size:.92rem;}
+.arch-detail p{margin:0;font-size:.86rem;}
+.arch-detail .meta{margin-top:.5rem;font-size:.75rem;color:var(--text-dim);}
+
+/* ---- flow ---- */
+.flow-controls{display:flex;gap:.7rem;align-items:center;margin-bottom:1.2rem;flex-wrap:wrap;}
+.flow{display:grid;grid-template-columns:1fr;gap:0;border-left:1px dashed var(--border);margin-left:14px;}
+.step{position:relative;padding:.55rem 0 .55rem 2.1rem;cursor:pointer;}
+.step::before{content:attr(data-n);position:absolute;left:-14px;top:.7rem;width:28px;height:28px;border-radius:50%;
+  background:var(--bg-alt);border:1px solid var(--border);color:var(--text-dim);font-size:.75rem;
+  display:flex;align-items:center;justify-content:center;transition:all .25s;}
+.step.on::before{border-color:var(--green);color:#000;background:var(--green);box-shadow:0 0 14px rgba(57,255,20,.5);}
+.step h4{margin:.35rem 0 .1rem;font-size:.94rem;color:var(--text);transition:color .2s;}
+.step.on h4{color:var(--white);}
+.step .sd{max-height:0;overflow:hidden;transition:max-height .35s ease,opacity .3s;opacity:0;font-size:.86rem;color:var(--text-dim);}
+.step.on .sd{max-height:260px;opacity:1;padding:.35rem 0 .6rem;}
+.step code{color:var(--green);background:rgba(57,255,20,.07);padding:.1rem .35rem;border-radius:4px;font-size:.82em;}
+
+/* ---- feature grid ---- */
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:1.1rem;}
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:1.2rem;}
+.grid-2>*,.grid-3>*,.gallery>*{min-width:0;}
+.card{background:var(--bg-alt);border:1px solid var(--border);border-radius:10px;padding:1.2rem 1.25rem;transition:transform .2s,border-color .2s;}
+.card:hover{transform:translateY(-4px);border-color:var(--green-dim);}
+.card .ico{font-size:1.3rem;}
+.card h3{margin:.5rem 0 .4rem;font-size:.95rem;color:var(--white);}
+.card p{margin:0;font-size:.84rem;color:var(--text-dim);}
+
+/* ---- gallery ---- */
+.filters{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1.4rem;}
+.filter{font-family:var(--mono);font-size:.76rem;padding:.35rem .8rem;border-radius:20px;cursor:pointer;
+  background:transparent;color:var(--text-dim);border:1px solid var(--border);transition:all .2s;}
+.filter:hover{color:var(--green);border-color:var(--green-dim);}
+.filter.on{background:rgba(57,255,20,.1);border-color:var(--green);color:var(--green);}
+.gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:1.1rem;}
+figure.shot{margin:0;background:var(--bg-alt);border:1px solid var(--border);border-radius:10px;overflow:hidden;cursor:zoom-in;transition:transform .2s,border-color .2s;}
+figure.shot:hover{transform:translateY(-4px);border-color:var(--green-dim);}
+figure.shot img{aspect-ratio:16/9;object-fit:cover;object-position:top center;border-bottom:1px solid var(--border);background:#06090d;}
+figure.shot figcaption{padding:.7rem .85rem .85rem;font-size:.78rem;color:var(--text-dim);}
+figure.shot figcaption b{display:block;color:var(--text);font-size:.84rem;font-weight:700;margin-bottom:.15rem;}
+figure.shot.hide{display:none;}
+
+/* ---- lightbox ---- */
+.lb{position:fixed;inset:0;background:rgba(5,7,10,.94);z-index:100;display:none;align-items:center;justify-content:center;flex-direction:column;padding:2.5rem 1.5rem;}
+.lb.open{display:flex;}
+.lb img{max-width:min(1200px,94vw);max-height:78vh;object-fit:contain;border:1px solid var(--border);border-radius:8px;}
+.lb-cap{color:var(--text);font-size:.85rem;margin-top:.9rem;text-align:center;max-width:70ch;}
+.lb-cap span{color:var(--text-dim);display:block;font-size:.78rem;margin-top:.2rem;}
+.lb-close{position:absolute;top:1.1rem;right:1.4rem;background:none;border:1px solid var(--border);color:var(--text);
+  font-family:var(--mono);font-size:.9rem;border-radius:6px;padding:.3rem .7rem;cursor:pointer;}
+.lb-close:hover{border-color:var(--green);color:var(--green);}
+.lb-nav{position:absolute;top:50%;transform:translateY(-50%);background:none;border:1px solid var(--border);color:var(--text);
+  font-family:var(--mono);font-size:1.2rem;border-radius:6px;padding:.5rem .8rem;cursor:pointer;}
+.lb-nav:hover{border-color:var(--green);color:var(--green);}
+.lb-prev{left:1.2rem;} .lb-next{right:1.2rem;}
+
+/* ---- tables ---- */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:10px;background:var(--bg-alt);}
+table{border-collapse:collapse;width:100%;min-width:620px;font-size:.83rem;}
+th,td{text-align:left;padding:.75rem 1rem;border-bottom:1px solid var(--border);}
+th{color:var(--text-dim);font-weight:500;text-transform:uppercase;font-size:.71rem;letter-spacing:.07em;}
+tr:last-child td{border-bottom:none;}
+td b{color:var(--white);}
+td code{color:var(--green);font-size:.9em;}
+
+/* ---- api accordion ---- */
+.acc{border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--bg-alt);}
+.acc+.acc{margin-top:.7rem;}
+.acc-head{width:100%;display:flex;align-items:center;justify-content:space-between;gap:1rem;background:none;border:none;
+  color:var(--text);font-family:var(--mono);font-size:.88rem;padding:.95rem 1.1rem;cursor:pointer;text-align:left;}
+.acc-head:hover{color:var(--green);}
+.acc-head .n{color:var(--text-dim);font-size:.75rem;}
+.acc-body{max-height:0;overflow:hidden;transition:max-height .35s ease;}
+.acc.open .acc-body{max-height:600px;}
+.acc.open .chev{transform:rotate(90deg);}
+.chev{color:var(--green);transition:transform .25s;display:inline-block;}
+.ep{display:flex;flex-wrap:wrap;gap:.3rem .8rem;align-items:baseline;padding:.42rem 1.1rem;font-size:.8rem;border-top:1px solid var(--border);}
+.ep .p{word-break:break-all;}
+.ep .m{min-width:58px;font-weight:700;font-size:.72rem;}
+.m.get{color:#38bdf8;} .m.post{color:#4ade80;} .m.patch{color:var(--yellow);} .m.del{color:var(--red);}
+.ep .p{color:var(--text);}
+.ep .d{color:var(--text-dim);margin-left:auto;text-align:right;}
+
+/* ---- code block ---- */
+.code{position:relative;background:var(--terminal-bg);border:1px solid var(--border);border-radius:8px;padding:1rem 1.1rem;overflow-x:auto;}
+.code pre{margin:0;font-size:.82rem;color:var(--text);font-family:var(--mono);}
+.code .c{color:var(--text-dim);}
+.copy{position:absolute;top:.6rem;right:.6rem;background:var(--bg-alt);border:1px solid var(--border);color:var(--text-dim);
+  font-family:var(--mono);font-size:.7rem;padding:.25rem .6rem;border-radius:5px;cursor:pointer;}
+.copy:hover{color:var(--green);border-color:var(--green-dim);}
+
+/* ---- notes ---- */
+.note{border-left:2px solid var(--green-dim);padding:.15rem 0 .15rem 1.1rem;margin-bottom:1.4rem;}
+.note h4{margin:0 0 .3rem;font-size:.9rem;color:var(--white);}
+.note p{margin:0;font-size:.85rem;color:var(--text-dim);}
+
+/* ---- footer ---- */
+.footer{text-align:center;padding:3rem 1.25rem;font-size:.85rem;border-top:1px solid var(--border);margin-top:3rem;}
+.footer p{margin:.35rem 0;}
+
+@media (max-width:900px){
+  .grid-3,.gallery{grid-template-columns:repeat(2,1fr);}
+  .stat-strip{grid-template-columns:repeat(2,1fr);}
+}
+@media (max-width:760px){
+  .ep .d{margin-left:0;width:100%;text-align:left;font-size:.72rem;}
+  .acc.open .acc-body{max-height:900px;}
+  .grid-3,.grid-2,.gallery{grid-template-columns:1fr;}
+  .nav-links{position:absolute;top:100%;left:0;right:0;background:var(--bg);border-bottom:1px solid var(--border);
+    flex-direction:column;padding:1rem 1.25rem;display:none;gap:1rem;}
+  .nav-links.open{display:flex;}
+  .nav-toggle{display:flex;}
+  .terminal-body{padding:1.2rem 1.1rem 1.4rem;}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important;}
+  .reveal{opacity:1;transform:none;}
+}
+</style>
+</head>
+<body>
+
+<canvas id="matrix-bg"></canvas>
+<div class="scanline"></div>
+<div id="progress"></div>
+
+<nav class="navbar">
+  <div class="nav-inner">
+    <a class="back-link" href="https://itz-Maheshkumar.github.io/">← back to portfolio</a>
+    <button class="nav-toggle" id="navToggle" aria-label="Toggle menu"><span></span><span></span><span></span></button>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="#overview">--overview</a></li>
+      <li><a href="#architecture">--architecture</a></li>
+      <li><a href="#flow">--flow</a></li>
+      <li><a href="#screens">--screens</a></li>
+      <li><a href="#api">--api</a></li>
+      <li><a href="#build">--run</a></li>
+    </ul>
+  </div>
+</nav>
+
+<header class="hero">
+  <p class="crumb"><a href="https://itz-Maheshkumar.github.io/">~/portfolio</a> <span class="dim">/</span> projects <span class="dim">/</span> <span class="hl">collaborative-database-notebook</span></p>
+  <h1>🗂️ Collaborative Database Notebook</h1>
+  <p class="hero-tagline">
+    A cell-based notebook workspace that sits between a database GUI and Jupyter — connect PostgreSQL,
+    MySQL, SQLite and MongoDB, run queries cell by cell against live schemas, document the reasoning in
+    Markdown alongside them, and keep every execution in an auditable trail.
+  </p>
+  <div class="badge-row">
+    <span class="badge">Next.js 14</span><span class="badge">TypeScript 5</span><span class="badge">FastAPI</span>
+    <span class="badge">SQLAlchemy 2.0 async</span><span class="badge">Pydantic v2</span><span class="badge">JWT + RBAC</span>
+    <span class="badge">Fernet</span><span class="badge">Docker Compose</span><span class="badge">GitHub Actions</span>
+  </div>
+  <div class="hero-links">
+    <a class="btn btn-primary" href="https://github.com/itz-Maheshkumar/Collaborative_Database_Notebook" target="_blank" rel="noopener">./view_source</a>
+    <a class="btn btn-outline" href="#screens">./see_it_running</a>
+  </div>
+  <div class="stat-strip">
+    <div class="stat"><b data-count="4">0</b><span>DB engines</span></div>
+    <div class="stat"><b data-count="22">0</b><span>REST endpoints</span></div>
+    <div class="stat"><b data-count="3">0</b><span>Containers</span></div>
+    <div class="stat"><b data-count="12">0</b><span>Screens shipped</span></div>
+  </div>
+</header>
+
+<main>
+
+<!-- OVERVIEW -->
+<section id="overview" class="section reveal">
+  <h2 class="section-title"><span class="tag">#</span> overview</h2>
+  <p class="section-sub">why this exists, and what it actually does</p>
+  <div class="grid-2">
+    <div class="terminal-window">
+      <div class="terminal-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="terminal-title">problem.md</span></div>
+      <div class="terminal-body">
+        <p>Database work splits awkwardly across tools. A GUI client runs queries but forgets why
+        you ran them. A notebook documents reasoning beautifully but needs a driver, a kernel and
+        a pile of glue before it can touch a real database — and a different pile again for MongoDB.</p>
+        <p>Neither remembers what the team ran last week, and neither has an answer for
+        <em>"who has the production password?"</em></p>
+      </div>
+    </div>
+    <div class="terminal-window">
+      <div class="terminal-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="terminal-title">solution.md</span></div>
+      <div class="terminal-body">
+        <p>One browser workspace. Saved connections with credentials <span class="hl">encrypted at rest</span>,
+        a schema tree introspected live from the target database, SQL and Markdown cells side by side,
+        and every execution logged with its duration, row count and error.</p>
+        <p>Roles decide who sees what: users get their own notebooks, admins get platform analytics
+        and the global audit log.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ARCHITECTURE -->
+<section id="architecture" class="section reveal">
+  <h2 class="section-title"><span class="tag">#</span> architecture</h2>
+  <p class="section-sub">three layers, one gateway — click any box to read what it does</p>
+  <div class="arch-wrap">
+    <svg class="arch-svg" viewBox="0 0 1000 700" role="img" aria-label="System architecture diagram">
+      <!-- lanes -->
+      <rect class="lane" x="40" y="40" width="920" height="115"></rect>
+      <text class="lane-label" x="56" y="62">CLIENT · NEXT.JS 14 + REACT 18</text>
+      <rect class="lane" x="40" y="205" width="920" height="215"></rect>
+      <text class="lane-label" x="56" y="227">SERVER · FASTAPI · ASYNC SQLALCHEMY 2.0</text>
+      <rect class="lane" x="40" y="465" width="270" height="130"></rect>
+      <text class="lane-label" x="56" y="487">APP STORE</text>
+      <rect class="lane" x="340" y="465" width="620" height="130"></rect>
+      <text class="lane-label" x="356" y="487">TARGET DATABASES</text>
+
+      <!-- edges: client -> gateway -->
+      <g id="edges">
+        <path class="edge" d="M150 133 C150 190 500 190 500 245"></path>
+        <path class="edge" d="M333 133 C333 195 500 195 500 245"></path>
+        <path class="edge" d="M516 133 C516 190 500 190 500 245"></path>
+        <path class="edge" d="M699 133 C699 195 500 195 500 245"></path>
+        <path class="edge" d="M882 133 C882 190 500 190 500 245"></path>
+        <!-- gateway -> services -->
+        <path class="edge" d="M500 297 C500 315 172 312 172 330"></path>
+        <path class="edge" d="M500 297 C500 315 395 312 395 330"></path>
+        <path class="edge" d="M500 297 C500 315 618 312 618 330"></path>
+        <path class="edge" d="M500 297 C500 315 841 312 841 330"></path>
+        <!-- services -> app store -->
+        <path class="edge" d="M172 386 C172 430 175 470 175 505"></path>
+        <path class="edge" d="M395 386 C395 440 175 450 175 505"></path>
+        <!-- engine + introspector -> target dbs -->
+        <path class="edge up" d="M618 386 C618 440 426 450 426 505"></path>
+        <path class="edge up" d="M618 386 C618 440 573 450 573 505"></path>
+        <path class="edge up" d="M618 386 C618 440 720 450 720 505"></path>
+        <path class="edge up" d="M618 386 C618 440 867 450 867 505"></path>
+        <path class="edge" d="M841 386 C841 440 720 455 720 505"></path>
+        <path class="edge" d="M841 386 C841 440 867 455 867 505"></path>
+      </g>
+
+      <!-- client nodes -->
+      <g class="node" data-k="editor"><rect x="70" y="81" width="160" height="52"></rect><text x="150" y="105">Monaco</text><text x="150" y="120">Cell Editor</text></g>
+      <g class="node" data-k="schema"><rect x="253" y="81" width="160" height="52"></rect><text x="333" y="105">Schema</text><text x="333" y="120">Explorer</text></g>
+      <g class="node" data-k="history"><rect x="436" y="81" width="160" height="52"></rect><text x="516" y="105">Query History</text><text x="516" y="120">Panel</text></g>
+      <g class="node" data-k="admin"><rect x="619" y="81" width="160" height="52"></rect><text x="699" y="105">Admin</text><text x="699" y="120">Dashboard</text></g>
+      <g class="node" data-k="learn"><rect x="802" y="81" width="160" height="52"></rect><text x="882" y="105">Learning</text><text x="882" y="120">Hub</text></g>
+
+      <!-- gateway -->
+      <g class="node" data-k="gateway"><rect x="340" y="245" width="320" height="52"></rect><text x="500" y="269">REST API Gateway</text><text x="500" y="284">JWT bearer auth · RBAC dependency guards</text></g>
+
+      <!-- services -->
+      <g class="node" data-k="vault"><rect x="70" y="330" width="205" height="56"></rect><text x="172" y="354">Fernet Credential</text><text x="172" y="370">Vault</text></g>
+      <g class="node" data-k="audit"><rect x="293" y="330" width="205" height="56"></rect><text x="395" y="354">Audit &amp; History</text><text x="395" y="370">Service</text></g>
+      <g class="node" data-k="engine"><rect x="516" y="330" width="205" height="56"></rect><text x="618" y="354">Unified Query</text><text x="618" y="370">Engine</text></g>
+      <g class="node" data-k="introspect"><rect x="739" y="330" width="205" height="56"></rect><text x="841" y="354">Schema</text><text x="841" y="370">Introspector</text></g>
+
+      <!-- app store -->
+      <g class="node" data-k="appdb"><rect x="60" y="505" width="230" height="56"></rect><text x="175" y="529">App DB · SQLite/PG</text><text x="175" y="545">users · notebooks · logs</text></g>
+
+      <!-- targets -->
+      <g class="node" data-k="pg"><rect x="360" y="505" width="132" height="56"></rect><text x="426" y="529">PostgreSQL</text><text x="426" y="545">asyncpg</text></g>
+      <g class="node" data-k="my"><rect x="507" y="505" width="132" height="56"></rect><text x="573" y="529">MySQL</text><text x="573" y="545">aiomysql</text></g>
+      <g class="node" data-k="lite"><rect x="654" y="505" width="132" height="56"></rect><text x="720" y="529">SQLite</text><text x="720" y="545">aiosqlite</text></g>
+      <g class="node" data-k="mongo"><rect x="801" y="505" width="132" height="56"></rect><text x="867" y="529">MongoDB</text><text x="867" y="545">motor</text></g>
+    </svg>
+  </div>
+  <div class="arch-detail" id="archDetail">
+    <h4>Pick a component</h4>
+    <p>Every request enters through one gateway, so authentication, role checks and audit logging happen in exactly one place instead of being re-implemented per feature.</p>
+    <p class="meta">// hover or tap any box in the diagram</p>
+  </div>
+</section>
+
+<!-- FLOW -->
+<section id="flow" class="section reveal">
+  <h2 class="section-title"><span class="tag">#</span> query_lifecycle</h2>
+  <p class="section-sub">what happens between pressing Ctrl+Enter and seeing rows</p>
+  <div class="flow-controls">
+    <button class="btn btn-outline" id="playFlow">▶ run the trace</button>
+    <span class="dim" style="font-size:.8rem;">or click any step</span>
+  </div>
+  <div class="flow" id="flowList">
+    <div class="step on" data-n="1">
+      <h4>Cell submits to the API</h4>
+      <div class="sd">The cell's SQL text and the selected <code>connection_id</code> are POSTed to <code>/api/v1/query/execute</code> with the JWT in the <code>Authorization</code> header. Nothing about the target database is trusted from the browser beyond that id.</div>
+    </div>
+    <div class="step" data-n="2">
+      <h4>Token decode &amp; role check</h4>
+      <div class="sd">A FastAPI dependency decodes the bearer token with <code>python-jose</code>, loads the user, and rejects the request before any handler runs. Admin-only routes carry an extra role guard, so an ordinary user can never reach the global audit log.</div>
+    </div>
+    <div class="step" data-n="3">
+      <h4>Connection resolved &amp; decrypted</h4>
+      <div class="sd">The connection row is loaded from the app store and its password is decrypted in memory with Fernet. Plaintext credentials exist only for the life of the request — they are never returned to the client, and never written to a log line.</div>
+    </div>
+    <div class="step" data-n="4">
+      <h4>Driver dispatch</h4>
+      <div class="sd">The connection's engine picks the connector: <code>asyncpg</code>, <code>aiomysql</code>, <code>aiosqlite</code> or <code>motor</code>. All four sit behind one base interface, so the route above them doesn't branch. MongoDB takes a structured JSON command object where the relational engines take SQL.</div>
+    </div>
+    <div class="step" data-n="5">
+      <h4>Execution, timed and guarded</h4>
+      <div class="sd">The query runs asynchronously against the target database while a timer measures wall-clock duration. A single-statement guard rejects batched statements in one cell — it keeps the cell / result mapping honest, and it is exactly the kind of error you can see captured in the history panel screenshot below.</div>
+    </div>
+    <div class="step" data-n="6">
+      <h4>Audit record written</h4>
+      <div class="sd">Success or failure, the run is persisted: query text, engine, duration in milliseconds, row count, status and error message. That single table backs both the user's history panel and the admin audit log — one write, two very different views.</div>
+    </div>
+    <div class="step" data-n="7">
+      <h4>Rows render, history refreshes</h4>
+      <div class="sd">Columns and rows come back as JSON, the cell renders its result grid with the execution time in the header, and the history drawer picks up the new entry with copy and re-run actions attached.</div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features" class="section reveal">
+  <h2 class="section-title"><span class="tag">#</span> what_it_does</h2>
+  <p class="section-sub">the feature set, honestly summarised</p>
+  <div class="grid-3">
+    <div class="card"><div class="ico">⌨️</div><h3>Cell-based execution</h3><p>SQL and Markdown cells with Monaco, syntax highlighting, <code>Ctrl+Enter</code> to run, per-cell timers, and Run All for the whole notebook.</p></div>
+    <div class="card"><div class="ico">🔌</div><h3>Four engines, one interface</h3><p>Native async connectors for PostgreSQL, MySQL, SQLite and MongoDB behind a shared base class.</p></div>
+    <div class="card"><div class="ico">🌲</div><h3>Live schema explorer</h3><p>Tables, collections, views, primary keys and column types introspected from the real database — click to copy a name into the editor.</p></div>
+    <div class="card"><div class="ico">🕓</div><h3>History &amp; auditing</h3><p>Every run logged with duration, rows and diagnostics. Copy or re-insert any past query in one click.</p></div>
+    <div class="card"><div class="ico">🛡️</div><h3>RBAC + admin analytics</h3><p>User vs admin roles, user management, activation toggles, and a platform dashboard with success rate and average query time.</p></div>
+    <div class="card"><div class="ico">🔐</div><h3>Credentials encrypted at rest</h3><p>Connection passwords sealed with Fernet (AES-128-CBC + HMAC-SHA256) before they ever touch storage.</p></div>
+    <div class="card"><div class="ico">🎓</div><h3>In-app learning hub</h3><p>Guided tutorials per engine with per-section progress tracking, so a new user has something to run on day one.</p></div>
+    <div class="card"><div class="ico">🐳</div><h3>One-command stack</h3><p><code>docker compose up --build</code> brings up PostgreSQL, the FastAPI backend and the Next.js frontend together.</p></div>
+    <div class="card"><div class="ico">⚙️</div><h3>CI/CD pipeline</h3><p>GitHub Actions runs ruff, pytest against a live PostgreSQL service, <code>tsc</code>, a Next build and Docker image verification.</p></div>
+  </div>
+</section>
+
+<!-- SCREENS -->
+<section id="screens" class="section reveal">
+  <h2 class="section-title"><span class="tag">#</span> screens</h2>
+  <p class="section-sub">click any shot to open it full size — ← → to move, esc to close</p>
+  <div class="filters" id="filters">
+    <button class="filter on" data-f="all">all</button>
+    <button class="filter" data-f="workspace">workspace</button>
+    <button class="filter" data-f="connections">connections</button>
+    <button class="filter" data-f="admin">admin</button>
+    <button class="filter" data-f="auth">auth &amp; learn</button>
+  </div>
+  <div class="gallery" id="gallery">
+
+    <figure class="shot" data-cat="workspace" data-full="images/Screenshot%202026-09-09%20181729.png">
+      <img loading="lazy" src="images/Screenshot%202026-09-09%20181729.png" alt="Notebook workspace with schema tree, SQL cell, result grid and query history drawer">
+      <figcaption><b>The full workspace</b>Schema tree on the left, an executed SQL cell in the middle with its result grid and 15.61 ms timer, and the history drawer open on the right.</figcaption>
+    </figure>
+
+    <figure class="shot" data-cat="workspace" data-full="images/Screenshot%202026-09-09%20181444.png">
+      <img loading="lazy" src="images/Screenshot%202026-09-09%20181444.png" alt="Empty notebook with a SQL cell ready to run">
+      <figcaption><b>A fresh notebook</b>Pick a connection, add SQL or Markdown cells, run one cell or the whole book.</figcaption>
+    </figure>
+
+    <figure class="shot" data-cat="workspace" data-full="images/Screenshot%202026-09-09%20181425.png">
+      <img loading="lazy" src="images/Screenshot%202026-09-09%20181425.png" alt="My Notebooks list view">
+      <figcaption><b>Notebook library</b>Every notebook you own, with cell count and last-updated stamp.</figcaption>
+    </figure>
+
+    <figure class="shot" data-cat="connections" data-full="images/Screenshot%202026-09-09%20181517.png">
+      <img loading="lazy" src="images/Screenshot%202026-09-09%20181517.png" alt="Add database connection modal with engine picker">
+      <figcaption><b>Add a connection</b>Engine picker drives the form; the password is encrypted before it is stored.</figcaption>
+    </figure>
+
+    <figure class="shot" data-cat="connections" data-full="images/Screenshot%202026-09-09%20181541.png">
+      <img loading="lazy" src="images/Screenshot%202026-09-09%20181541.png" alt="Connection form with a saved SQLite connection below">
+      <figcaption><b>Test before you save</b>Connectivity is verified against the real driver, not just field validation.</figcaption>
+    </figure>
+
+    <figure class="shot" data-cat="connections" data-full="images/Screenshot%202026-09-09%20181614.png">
+      <img loading="lazy" src="images/Screenshot%202026-09-09%20181614.png" alt="Saved database connections list">
+      <figcaption><b>Saved connections</b>Searchable by name, engine or database — each card re-testable on demand.</figcaption>
+    </figure>
+
+    <figure class="shot" data-cat="admin" data-full="images/Screenshot%202026-09-09%20181637.png">
+      <img loading="lazy" src="images/Screenshot%202026-09-09%20181637.png" alt="Admin analytics dashboard with metric tiles">
+      <figcaption><b>Admin analytics</b>Users, notebooks, connections, queries run, success rate and average query time — computed from the same audit table.</figcaption>
+    </figure>
+
+    <figure class="shot" data-cat="admin" data-full="images/Screenshot%202026-09-09%20181651.png">
+      <img loading="lazy" src="images/Screenshot%202026-09-09%20181651.png" alt="Admin user management table with role dropdowns">
+      <figcaption><b>User management</b>Promote to admin, deactivate, and see each user's notebook / connection / query counts.</figcaption>
+    </figure>
+
+    <figure class="shot" data-cat="admin" data-full="images/Screenshot%202026-09-09%20181707.png">
+      <img loading="lazy" src="images/Screenshot%202026-09-09%20181707.png" alt="Global audit log filtered by status">
+      <figcaption><b>Global audit log</b>Time, user, engine, status, duration, rows and the query itself — filterable to failures only.</figcaption>
+    </figure>
+
+    <figure class="shot" data-cat="auth" data-full="images/Screenshot%202026-09-09%20181559.png">
+      <img loading="lazy" src="images/Screenshot%202026-09-09%20181559.png" alt="Learning hub with per-engine guides">
+      <figcaption><b>Learning hub</b>A guide per engine with duration, level and section-by-section progress.</figcaption>
+    </figure>
+
+    <figure class="shot" data-cat="auth" data-full="images/Screenshot%202026-09-09%20180845.png">
+      <img loading="lazy" src="images/Screenshot%202026-09-09%20180845.png" alt="Sign in screen">
+      <figcaption><b>Sign in</b>JWT issued on login; bcrypt hashes on the way in.</figcaption>
+    </figure>
+
+    <figure class="shot" data-cat="auth" data-full="images/Screenshot%202026-09-09%20180930.png">
+      <img loading="lazy" src="images/Screenshot%202026-09-09%20180930.png" alt="Create account screen">
+      <figcaption><b>Register</b>Self-serve signup; the first admin is provisioned by a management script.</figcaption>
+    </figure>
+
+  </div>
+</section>
+
+<!-- ENGINES -->
+<section id="engines" class="section reveal">
+  <h2 class="section-title"><span class="tag">#</span> supported_engines</h2>
+  <p class="section-sub">each one async, each one introspectable</p>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Engine</th><th>Async driver</th><th>Query surface</th><th>Introspection source</th></tr></thead>
+      <tbody>
+        <tr><td><b>PostgreSQL</b></td><td><code>asyncpg</code></td><td>ANSI SQL / PostgreSQL dialect</td><td><code>information_schema</code> tables, columns, types</td></tr>
+        <tr><td><b>MySQL</b></td><td><code>aiomysql</code></td><td>MySQL dialect, <code>SHOW</code> / <code>DESCRIBE</code></td><td>Information schema tables, views, field types</td></tr>
+        <tr><td><b>SQLite</b></td><td><code>aiosqlite</code></td><td>SQLite SQL, <code>PRAGMA</code></td><td>Table metadata, indexes, column types</td></tr>
+        <tr><td><b>MongoDB</b></td><td><code>motor</code></td><td>JSON command objects</td><td>Collection discovery + document field sampling</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div style="margin-top:1.4rem;">
+    <p class="dim" style="font-size:.82rem;margin-bottom:.5rem;">// MongoDB cells take a command object instead of SQL — <code style="color:var(--green)">find</code>, <code style="color:var(--green)">insertOne</code>, <code style="color:var(--green)">updateMany</code>, <code style="color:var(--green)">deleteOne</code>, <code style="color:var(--green)">aggregate</code></p>
+    <div class="code">
+      <button class="copy">copy</button>
+<pre>{
+  "operation": "find",
+  "collection": "users",
+  "filter": { "role": "admin" },
+  "limit": 25
+}</pre>
+    </div>
+  </div>
+</section>
+
+<!-- SECURITY -->
+<section id="security" class="section reveal">
+  <h2 class="section-title"><span class="tag">#</span> security_model</h2>
+  <p class="section-sub">the part that decides whether anyone would actually run this</p>
+  <div class="grid-2">
+    <div class="card"><div class="ico">🔑</div><h3>Authentication</h3><p>Stateless JWT bearer tokens signed with HS256; passwords hashed with bcrypt. Token lifetime is configurable and defaults to 24 hours.</p></div>
+    <div class="card"><div class="ico">🧱</div><h3>Authorization</h3><p>Two hierarchical roles — <code>user</code> and <code>admin</code> — enforced by route-level dependencies rather than checks scattered through handlers.</p></div>
+    <div class="card"><div class="ico">🗝️</div><h3>Credentials at rest</h3><p>Fernet symmetric encryption (AES-128-CBC with HMAC-SHA256 authentication) over every stored database password and connection string.</p></div>
+    <div class="card"><div class="ico">🧯</div><h3>Query isolation</h3><p>User queries run through isolated async driver interfaces against the <em>target</em> database, never through the application's own ORM session.</p></div>
+  </div>
+</section>
+
+<!-- API -->
+<section id="api" class="section reveal">
+  <h2 class="section-title"><span class="tag">#</span> api_surface</h2>
+  <p class="section-sub">FastAPI generates the OpenAPI 3.0 docs — Swagger at <code>/docs</code>, ReDoc at <code>/redoc</code></p>
+
+  <div class="acc open">
+    <button class="acc-head"><span><span class="chev">▸</span> &nbsp;Authentication</span><span class="n">3 routes</span></button>
+    <div class="acc-body">
+      <div class="ep"><span class="m post">POST</span><span class="p">/api/v1/auth/register</span><span class="d">create an account</span></div>
+      <div class="ep"><span class="m post">POST</span><span class="p">/api/v1/auth/login</span><span class="d">issue JWT</span></div>
+      <div class="ep"><span class="m get">GET</span><span class="p">/api/v1/auth/me</span><span class="d">current profile</span></div>
+    </div>
+  </div>
+
+  <div class="acc">
+    <button class="acc-head"><span><span class="chev">▸</span> &nbsp;Connections</span><span class="n">5 routes</span></button>
+    <div class="acc-body">
+      <div class="ep"><span class="m get">GET</span><span class="p">/api/v1/connections</span><span class="d">list</span></div>
+      <div class="ep"><span class="m post">POST</span><span class="p">/api/v1/connections</span><span class="d">create (encrypts credentials)</span></div>
+      <div class="ep"><span class="m get">GET</span><span class="p">/api/v1/connections/{id}</span><span class="d">detail</span></div>
+      <div class="ep"><span class="m del">DELETE</span><span class="p">/api/v1/connections/{id}</span><span class="d">remove</span></div>
+      <div class="ep"><span class="m post">POST</span><span class="p">/api/v1/connections/{id}/test</span><span class="d">live connectivity check</span></div>
+    </div>
+  </div>
+
+  <div class="acc">
+    <button class="acc-head"><span><span class="chev">▸</span> &nbsp;Notebooks</span><span class="n">5 routes</span></button>
+    <div class="acc-body">
+      <div class="ep"><span class="m get">GET</span><span class="p">/api/v1/notebooks</span><span class="d">list own notebooks</span></div>
+      <div class="ep"><span class="m post">POST</span><span class="p">/api/v1/notebooks</span><span class="d">create</span></div>
+      <div class="ep"><span class="m get">GET</span><span class="p">/api/v1/notebooks/{id}</span><span class="d">notebook with cells</span></div>
+      <div class="ep"><span class="m patch">PATCH</span><span class="p">/api/v1/notebooks/{id}</span><span class="d">rename / metadata</span></div>
+      <div class="ep"><span class="m del">DELETE</span><span class="p">/api/v1/notebooks/{id}</span><span class="d">delete</span></div>
+    </div>
+  </div>
+
+  <div class="acc">
+    <button class="acc-head"><span><span class="chev">▸</span> &nbsp;Query &amp; schema engine</span><span class="n">4 routes</span></button>
+    <div class="acc-body">
+      <div class="ep"><span class="m post">POST</span><span class="p">/api/v1/query/execute</span><span class="d">run SQL / Mongo command</span></div>
+      <div class="ep"><span class="m get">GET</span><span class="p">/api/v1/query/history</span><span class="d">execution log</span></div>
+      <div class="ep"><span class="m del">DELETE</span><span class="p">/api/v1/query/history</span><span class="d">clear own history</span></div>
+      <div class="ep"><span class="m get">GET</span><span class="p">/api/v1/schema/{conn_id}</span><span class="d">live schema tree</span></div>
+    </div>
+  </div>
+
+  <div class="acc">
+    <button class="acc-head"><span><span class="chev">▸</span> &nbsp;Learning hub &amp; admin</span><span class="n">5 routes</span></button>
+    <div class="acc-body">
+      <div class="ep"><span class="m get">GET</span><span class="p">/api/v1/tutorials/progress</span><span class="d">completed sections</span></div>
+      <div class="ep"><span class="m post">POST</span><span class="p">/api/v1/tutorials/progress</span><span class="d">mark complete</span></div>
+      <div class="ep"><span class="m get">GET</span><span class="p">/api/v1/admin/analytics</span><span class="d">platform metrics · admin</span></div>
+      <div class="ep"><span class="m get">GET</span><span class="p">/api/v1/admin/users</span><span class="d">user administration · admin</span></div>
+      <div class="ep"><span class="m get">GET</span><span class="p">/api/v1/admin/audit-logs</span><span class="d">global audit trail · admin</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- BUILD -->
+<section id="build" class="section reveal">
+  <h2 class="section-title"><span class="tag">#</span> run_it_yourself</h2>
+  <p class="section-sub">the whole stack in one command</p>
+  <div class="grid-2">
+    <div>
+      <p class="dim" style="font-size:.82rem;">// option 1 — docker compose</p>
+      <div class="code">
+        <button class="copy">copy</button>
+<pre><span class="c"># clone and start every service</span>
+git clone https://github.com/itz-Maheshkumar/Collaborative_Database_Notebook.git
+cd Collaborative_Database_Notebook
+docker compose up --build
+
+<span class="c"># frontend  → http://localhost:3000</span>
+<span class="c"># api       → http://localhost:8000</span>
+<span class="c"># api docs  → http://localhost:8000/docs</span></pre>
+      </div>
+    </div>
+    <div>
+      <p class="dim" style="font-size:.82rem;">// option 2 — local dev</p>
+      <div class="code">
+        <button class="copy">copy</button>
+<pre><span class="c"># backend</span>
+cd backend
+python -m venv .venv &amp;&amp; source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+uvicorn app.main:app --reload --port 8000
+
+<span class="c"># frontend</span>
+cd frontend
+npm install
+npm run dev</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- NOTES -->
+<section id="notes" class="section reveal">
+  <h2 class="section-title"><span class="tag">#</span> engineering_notes</h2>
+  <p class="section-sub">decisions worth defending in an interview</p>
+  <div class="grid-2">
+    <div>
+      <div class="note"><h4>Async all the way down</h4><p>Every driver is an async one, so a slow analytical query on PostgreSQL doesn't block the event loop for the person running a fast lookup on SQLite. FastAPI + SQLAlchemy 2.0's asyncio layer made that the default rather than an optimisation.</p></div>
+      <div class="note"><h4>Encryption, not hashing, for connection secrets</h4><p>User passwords are hashed with bcrypt because they only ever need verifying. Database credentials must be <em>replayed</em> to the target server, so they are encrypted with Fernet instead — a genuinely different requirement that deserves a different primitive.</p></div>
+      <div class="note"><h4>One connector interface, four engines</h4><p>A shared base class keeps engine-specific quirks inside each connector. Adding a fifth engine means writing one class, not touching the query route, the history model or the UI.</p></div>
+    </div>
+    <div>
+      <div class="note"><h4>One audit table, two products</h4><p>The same execution log powers the user's personal history drawer and the admin's platform analytics. Aggregation happens at read time, so the write path stays a single insert.</p></div>
+      <div class="note"><h4>A single statement per cell</h4><p>Rejecting batched statements keeps the cell → result mapping unambiguous and makes durations meaningful. It surfaces as a clean error in the history panel rather than a silently partial run.</p></div>
+      <div class="note"><h4>Docs as part of the build</h4><p>FastAPI's generated OpenAPI schema means the API surface can't drift from the code, and CI verifies the Docker images build — so "it works on my machine" isn't a valid defence.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section reveal" style="padding-top:0;">
+  <div class="terminal-window">
+    <div class="terminal-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="terminal-title">./next_steps.sh</span></div>
+    <div class="terminal-body" style="text-align:center;">
+      <p><span class="prompt">$</span> echo "read the code, or come back to the rest of the work"</p>
+      <div class="hero-links" style="justify-content:center;margin-top:1.2rem;">
+        <a class="btn btn-primary" href="https://github.com/itz-Maheshkumar/Collaborative_Database_Notebook" target="_blank" rel="noopener">./view_source</a>
+        <a class="btn btn-outline" href="https://itz-Maheshkumar.github.io/#projects">./other_projects</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="footer">
+  <p><span class="prompt">$</span> print("built by Maheshkumar V")</p>
+  <p class="dim">© <span id="year"></span> Maheshkumar V — project deep dive, hosted on GitHub Pages.</p>
+</footer>
+
+<div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="Screenshot viewer">
+  <button class="lb-close" id="lbClose" aria-label="Close">esc ✕</button>
+  <button class="lb-nav lb-prev" id="lbPrev" aria-label="Previous">‹</button>
+  <button class="lb-nav lb-next" id="lbNext" aria-label="Next">›</button>
+  <img id="lbImg" src="" alt="">
+  <div class="lb-cap" id="lbCap"></div>
+</div>
+
+<script>
+/* ---------- matrix background ---------- */
+(function(){
+  var c=document.getElementById('matrix-bg');
+  if(!c||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  var ctx=c.getContext('2d'),cols,drops,fs=14;
+  var chars='SELECT*FROMWHERE01{}$;JOIN'.split('');
+  function size(){c.width=window.innerWidth;c.height=window.innerHeight;cols=Math.floor(c.width/fs);drops=new Array(cols).fill(1);}
+  size();window.addEventListener('resize',size);
+  setInterval(function(){
+    ctx.fillStyle='rgba(13,17,23,0.06)';ctx.fillRect(0,0,c.width,c.height);
+    ctx.fillStyle='#39FF14';ctx.font=fs+'px monospace';
+    for(var i=0;i<drops.length;i++){
+      ctx.fillText(chars[Math.floor(Math.random()*chars.length)],i*fs,drops[i]*fs);
+      if(drops[i]*fs>c.height&&Math.random()>0.975)drops[i]=0;
+      drops[i]++;
+    }
+  },60);
+})();
+
+/* ---------- nav ---------- */
+document.getElementById('navToggle').addEventListener('click',function(){
+  document.getElementById('navLinks').classList.toggle('open');
+});
+document.querySelectorAll('.nav-links a').forEach(function(a){
+  a.addEventListener('click',function(){document.getElementById('navLinks').classList.remove('open');});
+});
+document.getElementById('year').textContent=new Date().getFullYear();
+
+/* ---------- scroll progress + spy ---------- */
+var bar=document.getElementById('progress');
+var secs=[].slice.call(document.querySelectorAll('main section[id]'));
+var links=[].slice.call(document.querySelectorAll('.nav-links a'));
+function onScroll(){
+  var h=document.documentElement.scrollHeight-window.innerHeight;
+  bar.style.width=(h>0?(window.scrollY/h)*100:0)+'%';
+  var cur='';
+  secs.forEach(function(s){ if(window.scrollY>=s.offsetTop-140) cur=s.id; });
+  links.forEach(function(l){ l.classList.toggle('active', l.getAttribute('href')==='#'+cur); });
+}
+window.addEventListener('scroll',onScroll,{passive:true});onScroll();
+
+/* ---------- reveal ---------- */
+var io=new IntersectionObserver(function(es){
+  es.forEach(function(e){ if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);} });
+},{threshold:0.08});
+document.querySelectorAll('.reveal').forEach(function(el){io.observe(el);});
+
+/* ---------- counters ---------- */
+var cio=new IntersectionObserver(function(es){
+  es.forEach(function(e){
+    if(!e.isIntersecting)return;
+    var el=e.target,target=+el.dataset.count,n=0;
+    var t=setInterval(function(){n++;el.textContent=n;if(n>=target)clearInterval(t);},260/Math.max(target,1)+34);
+    cio.unobserve(el);
+  });
+},{threshold:0.5});
+document.querySelectorAll('[data-count]').forEach(function(el){cio.observe(el);});
+
+/* ---------- architecture detail ---------- */
+var ARCH={
+  editor:['Monaco cell editor','The notebook surface: SQL and Markdown cells with syntax highlighting, keyboard execution and a per-cell timer shown next to the result grid.','client · React client component'],
+  schema:['Schema explorer','A live tree of the connected database — tables or collections, views, primary keys and column types. Clicking a name copies it, so you type less and typo less.','client · fed by GET /schema/{conn_id}'],
+  history:['Query history panel','A drawer of past executions with status, duration and row count, filterable to successes or errors, with copy and re-insert on every entry.','client · fed by GET /query/history'],
+  admin:['Admin dashboard','Three tabs — analytics tiles, a user management table with role and activation controls, and the global audit log across all users.','client · admin role only'],
+  learn:['Learning hub','Per-engine guides with difficulty, estimated time and section progress persisted per user, so the workspace ships with something to do in it.','client · tutorials API'],
+  gateway:['REST API gateway','Every route enters here. A dependency decodes the JWT and loads the user before any handler runs; admin routes add a role guard. Auth and audit live in one place instead of per feature.','FastAPI · python-jose · dependency injection'],
+  vault:['Fernet credential vault','Encrypts and decrypts stored database passwords and connection strings using AES-128-CBC with HMAC-SHA256 authentication. Plaintext exists only in memory, for the length of one request.','cryptography.fernet'],
+  audit:['Audit & history service','Writes one row per execution — query, engine, duration, row count, status, error. That single table backs both the user history drawer and the admin audit log.','SQLAlchemy 2.0 async'],
+  engine:['Unified query engine','Resolves the connection, picks the right connector for the engine and runs the statement asynchronously while timing it. The route above it never branches on database type.','async execution + single-statement guard'],
+  introspect:['Schema introspector','Asks each database how it describes itself — information_schema for PostgreSQL and MySQL, PRAGMA for SQLite, document sampling for MongoDB — and normalises the answers into one tree shape.','per-engine introspection'],
+  appdb:['Application store','The platform’s own database: users, notebooks and cells, saved connections with encrypted secrets, execution history and tutorial progress. SQLite by default, PostgreSQL in the Docker stack.','SQLAlchemy 2.0 + Alembic'],
+  pg:['PostgreSQL target','Connected over asyncpg. Full ANSI SQL and PostgreSQL dialect; schema read from information_schema.','asyncpg'],
+  my:['MySQL target','Connected over aiomysql, including SHOW and DESCRIBE; schema read from the information schema.','aiomysql'],
+  lite:['SQLite target','Connected over aiosqlite, including PRAGMA introspection for tables, indexes and column types.','aiosqlite'],
+  mongo:['MongoDB target','Connected over motor. Cells send structured JSON command objects — find, insertOne, updateMany, deleteOne, aggregate — and the schema view samples document fields per collection.','motor']
+};
+var detail=document.getElementById('archDetail');
+function showArch(k,node){
+  var d=ARCH[k];if(!d)return;
+  detail.innerHTML='<h4>'+d[0]+'</h4><p>'+d[1]+'</p><p class="meta">// '+d[2]+'</p>';
+  document.querySelectorAll('.node').forEach(function(n){n.classList.remove('sel');});
+  if(node)node.classList.add('sel');
+}
+document.querySelectorAll('.node').forEach(function(n){
+  n.addEventListener('mouseenter',function(){showArch(n.dataset.k,n);});
+  n.addEventListener('click',function(){showArch(n.dataset.k,n);});
+});
+
+/* ---------- flow stepper ---------- */
+var steps=[].slice.call(document.querySelectorAll('.step'));
+function openStep(i){steps.forEach(function(s,j){s.classList.toggle('on',i===j);});}
+steps.forEach(function(s,i){s.addEventListener('click',function(){openStep(i);});});
+var playing=null;
+document.getElementById('playFlow').addEventListener('click',function(){
+  var btn=this;
+  if(playing){clearInterval(playing);playing=null;btn.textContent='▶ run the trace';return;}
+  var i=0;openStep(0);btn.textContent='■ stop';
+  playing=setInterval(function(){
+    i++;
+    if(i>=steps.length){clearInterval(playing);playing=null;btn.textContent='▶ run the trace';return;}
+    openStep(i);
+  },2600);
+});
+
+/* ---------- gallery filter ---------- */
+var shots=[].slice.call(document.querySelectorAll('figure.shot'));
+document.getElementById('filters').addEventListener('click',function(e){
+  var b=e.target.closest('.filter');if(!b)return;
+  document.querySelectorAll('.filter').forEach(function(f){f.classList.remove('on');});
+  b.classList.add('on');
+  var f=b.dataset.f;
+  shots.forEach(function(s){s.classList.toggle('hide',f!=='all'&&s.dataset.cat!==f);});
+});
+
+/* ---------- lightbox ---------- */
+var lb=document.getElementById('lb'),lbImg=document.getElementById('lbImg'),lbCap=document.getElementById('lbCap'),idx=0;
+function visible(){return shots.filter(function(s){return !s.classList.contains('hide');});}
+function openLb(fig){
+  var list=visible();idx=list.indexOf(fig);paint();
+  lb.classList.add('open');document.body.style.overflow='hidden';
+}
+function paint(){
+  var list=visible(),fig=list[idx];if(!fig)return;
+  lbImg.src=fig.dataset.full;lbImg.alt=fig.querySelector('img').alt;
+  var cap=fig.querySelector('figcaption');
+  lbCap.innerHTML='<b>'+cap.querySelector('b').textContent+'</b><span>'+cap.textContent.replace(cap.querySelector('b').textContent,'')+'</span>';
+}
+function move(d){var list=visible();idx=(idx+d+list.length)%list.length;paint();}
+function closeLb(){lb.classList.remove('open');document.body.style.overflow='';}
+shots.forEach(function(s){s.addEventListener('click',function(){openLb(s);});});
+document.getElementById('lbClose').addEventListener('click',closeLb);
+document.getElementById('lbPrev').addEventListener('click',function(e){e.stopPropagation();move(-1);});
+document.getElementById('lbNext').addEventListener('click',function(e){e.stopPropagation();move(1);});
+lb.addEventListener('click',function(e){if(e.target===lb)closeLb();});
+document.addEventListener('keydown',function(e){
+  if(!lb.classList.contains('open'))return;
+  if(e.key==='Escape')closeLb();
+  if(e.key==='ArrowLeft')move(-1);
+  if(e.key==='ArrowRight')move(1);
+});
+
+/* ---------- accordion ---------- */
+document.querySelectorAll('.acc-head').forEach(function(h){
+  h.addEventListener('click',function(){h.parentElement.classList.toggle('open');});
+});
+
+/* ---------- copy buttons ---------- */
+document.querySelectorAll('.copy').forEach(function(b){
+  b.addEventListener('click',function(){
+    var txt=b.parentElement.querySelector('pre').innerText;
+    navigator.clipboard.writeText(txt).then(function(){
+      b.textContent='copied ✓';setTimeout(function(){b.textContent='copy';},1600);
+    }).catch(function(){b.textContent='ctrl+c';setTimeout(function(){b.textContent='copy';},1600);});
+  });
+});
+</script>
+</body>
+</html>
